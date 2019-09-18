@@ -1,0 +1,63 @@
+version: "3.2"
+services:
+  #DGraph services
+  zero:
+    image: dgraph/dgraph:latest
+    volumes:
+      - type: volume
+        source: dgraph
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 5080:5080
+      - 6080:6080
+    restart: on-failure
+    command: dgraph zero --my=zero:5080
+    networks:
+      - backend
+  server:
+    image: dgraph/dgraph:latest
+    volumes:
+      - type: volume
+        source: dgraph
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 8080:8080
+      - 9080:9080
+    restart: on-failure
+    command: dgraph alpha --my=server:7080 --lru_mb=2048 --zero=zero:5080
+  ratel:
+    image: dgraph/dgraph:latest
+    volumes:
+      - type: volume
+        source: dgraph
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 8000:8000
+    command: dgraph-ratel
+
+  # WhatsUpKent services
+  scraper:
+    # Configuration for building the docker image for the service
+    build:
+      context: . # Use an image built from the specified dockerfile in the current directory.
+      dockerfile: Dockerfile-scraper
+    restart: unless-stopped
+    depends_on:
+      - zero
+      - server
+    environment: # Pass environment variables to the service
+      DGRAPH_URL: server:9080
+    networks: # Networks to join (Services on the same network can communicate with each other using their name)
+      - backend
+
+volumes:
+  dgraph:
+
+networks:
+  backend:
