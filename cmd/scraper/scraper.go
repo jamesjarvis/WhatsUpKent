@@ -1,5 +1,0 @@
-package scraper
-
-func main() {
-	
-}

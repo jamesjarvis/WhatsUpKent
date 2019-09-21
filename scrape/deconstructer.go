@@ -1,4 +1,11 @@
-package ical-scrape
+package scrape
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/apognu/gocal"
+)
 
 // The purpose of this section is to deconstruct the cached ical files and to create event objects from that.
 // Then it should call the
@@ -10,11 +17,18 @@ package ical-scrape
 // Send the actual filename over to another pool of workers
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
+// Opens the file and starts the parsing
+func ParseCal(filename string) {
+	f, _ := os.Open(filename)
+	defer f.Close()
 
-import (
-	"github.com/apognu/gocal"
-)
+	// start, end := time.Now(), time.Now().Add(12*30*24*time.Hour)
 
-func parseICal(filename string) {
-	
+	c := gocal.NewParser(f)
+	// c.Start, c.End = &start, &end
+	c.Parse()
+
+	for _, e := range c.Events {
+		fmt.Printf("%s on %s by %s", e.Summary, e.Start, e.Organizer.Cn)
+	}
 }
