@@ -64,7 +64,7 @@ func DownloadFile(id int, filepath string) error {
 }
 
 // Downloads all of the urls in the channel
-func DownloadAll(chIds chan int, chFiles chan string) {
+func downloadAll(chIds chan int, chFiles chan string) {
 	//Set up cache directory
 	os.Mkdir("ical_cache", os.FileMode(0755))
 
@@ -89,7 +89,7 @@ func worker(queue chan int, worknumber int, chFiles chan string) {
 }
 
 // Sends the file to be scraped, and once that is complete, it deletes the cached file
-func ProcessFile(filename string) {
+func processFile(filename string) {
 	ParseCal(filename)
 
 	// Remove the cache
@@ -97,9 +97,9 @@ func ProcessFile(filename string) {
 }
 
 // Scrapes all files in the channel
-func ProcessAll(chFiles chan string) {
+func processAll(chFiles chan string) {
 	for filename := range chFiles {
-		go ProcessFile(filename)
+		go processFile(filename)
 	}
 }
 
@@ -112,8 +112,8 @@ func FuckIt() {
 	go GetIds(chIds) //Populate the URLs to be downloaded
 
 	// Download all of the urls in the channel
-	DownloadAll(chIds, chFiles)
+	downloadAll(chIds, chFiles)
 
 	// Whilst this is happening, scrape all the files in the other channel
-	ProcessAll(chFiles)
+	processAll(chFiles)
 }
