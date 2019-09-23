@@ -1,8 +1,8 @@
-version: "3.2"
+version: "3.7"
 services:
   #DGraph services
   zero:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v1.1.0
     volumes:
       - type: volume
         source: dgraph
@@ -17,7 +17,7 @@ services:
     networks:
       - backend
   server:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v1.1.0
     volumes:
       - type: volume
         source: dgraph
@@ -29,8 +29,12 @@ services:
       - 9080:9080
     restart: on-failure
     command: dgraph alpha --my=server:7080 --lru_mb=2048 --zero=zero:5080
+    depends_on:
+      - zero
+    networks:
+      - backend
   ratel:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v1.1.0
     volumes:
       - type: volume
         source: dgraph
@@ -41,20 +45,20 @@ services:
       - 8000:8000
     command: dgraph-ratel
 
-  # WhatsUpKent services
-  scraper:
-    # Configuration for building the docker image for the service
-    build:
-      context: . # Use an image built from the specified dockerfile in the current directory.
-      dockerfile: Dockerfile-scraper
-    restart: unless-stopped
-    depends_on:
-      - zero
-      - server
-    environment: # Pass environment variables to the service
-      DGRAPH_URL: server:9080
-    networks: # Networks to join (Services on the same network can communicate with each other using their name)
-      - backend
+  # # WhatsUpKent services
+  # scraper:
+  #   # Configuration for building the docker image for the service
+  #   build:
+  #     context: . # Use an image built from the specified dockerfile in the current directory.
+  #     dockerfile: Dockerfile-scraper
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - zero
+  #     - server
+  #   environment: # Pass environment variables to the service
+  #     DGRAPH_URL: server:9080
+  #   networks: # Networks to join (Services on the same network can communicate with each other using their name)
+  #     - backend
 
 volumes:
   dgraph:
