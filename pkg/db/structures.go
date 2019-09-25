@@ -20,9 +20,9 @@ type Module struct {
 
 type Scrape struct {
 	UID         string     `json:"uid,omitempty"`
-	ID          string     `json:"id,omitempty"`
+	ID          int        `json:"id,omitempty"`
 	LastScraped *time.Time `json:"last_scraped,omitempty"`
-	Found       []Event    `json:"found,omitempty"`
+	FoundEvent  []Event    `json:"found_event,omitempty"`
 	DType       []string   `json:"dgraph.type,omitempty"`
 }
 
@@ -57,5 +57,54 @@ type Event struct {
 
 // The database schema
 var Schema = `
-help me 
+title: string @index(fulltext) .
+start_date: datetime .
+end_date: datetime .
+organiser: [uid] @reverse .
+part_of_module: [uid] @reverse .
+location: [uid] @reverse .
+
+code: string .
+name: string @index(fulltext) .
+subject: string @index(fulltext) .
+found_event: [uid] @reverse .
+
+type Loc {
+  type: string
+  coords: float
+}
+
+type Location {
+	name: string
+	loc: Loc
+	disabled_access: bool
+}
+
+type Module {
+	code: string
+	name: string
+	subject: string
+}
+
+type Person {
+	name: string
+	email: string
+}
+
+type Scrape {
+	id: int
+	last_scraped: datetime
+	found_event: [Event]
+}
+
+type Event {
+	id: string
+	title: string
+	description: string
+	start_date: datetime
+	end_date: datetime
+	organiser: [Person]
+	part_of_module: [Module]
+	location: [Location]
+}
 `

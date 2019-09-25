@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
@@ -17,7 +18,7 @@ func NewClient() *dgo.Dgraph {
 	dialOpts := append([]grpc.DialOption{},
 		grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
-	d, err := grpc.Dial("localhost:9080", dialOpts...)
+	d, err := grpc.Dial(os.Getenv("DGRAPH_URL"), dialOpts...)
 
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +29,7 @@ func NewClient() *dgo.Dgraph {
 	)
 }
 
-func setup(c *dgo.Dgraph) error {
+func Setup(c *dgo.Dgraph) error {
 	// Install a schema into dgraph. Accounts have a `name` and a `balance`.
 	err := c.Alter(context.Background(), &api.Operation{
 		Schema: Schema,
