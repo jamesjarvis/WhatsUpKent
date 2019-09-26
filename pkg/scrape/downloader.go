@@ -9,6 +9,12 @@ import (
 	"path/filepath"
 )
 
+//Types
+type FilesIds struct {
+	id       int
+	filename string
+}
+
 // The point of this section is to concurrently download ical files from a specified ID, and cache them on the system.
 // This should also provide a function which can delete a cache if it exists
 
@@ -33,9 +39,9 @@ func FormatFilename(id int) string {
 }
 
 // Makes the request and saves the result to a file
-func DownloadFile(id int, filepath string) error {
+func DownloadFile(fid FilesIds) error {
 
-	url := FormatURL(id)
+	url := FormatURL(fid.id)
 
 	// Get the data
 	resp, err := http.Get(url)
@@ -43,14 +49,14 @@ func DownloadFile(id int, filepath string) error {
 		return err
 	} else if resp.StatusCode != 200 {
 		if resp.StatusCode == 500 {
-			fmt.Printf("%d returned %d", id, resp.StatusCode)
+			fmt.Printf("%d returned %d", fid.id, resp.StatusCode)
 		}
 		return errors.New("Invalid ID")
 	}
 	defer resp.Body.Close()
 
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(fid.filename)
 	if err != nil {
 		fmt.Print(err)
 		return err
@@ -64,7 +70,7 @@ func DownloadFile(id int, filepath string) error {
 }
 
 // Downloads all of the urls in the channel
-func downloadAll(chIds chan int, chFiles chan string) {
+func downloadAll(chIds chan int, chFiles chan FilesIds) {
 	//Set up cache directory
 	os.Mkdir("ical_cache", os.FileMode(0755))
 
@@ -74,30 +80,33 @@ func downloadAll(chIds chan int, chFiles chan string) {
 	}
 }
 
-func worker(queue chan int, worknumber int, chFiles chan string) {
+func worker(queue chan int, worknumber int, chFiles chan FilesIds) {
 	for true {
 		select {
 		case id := <-queue:
-			filepath := FormatFilename(id)
-			err := DownloadFile(id, filepath)
+			fid := FilesIds{
+				id:       id,
+				filename: FormatFilename(id),
+			}
+			err := DownloadFile(fid)
 			fmt.Println("doing work!", id, "worknumber", worknumber)
 			if err == nil {
-				chFiles <- filepath
+				chFiles <- fid
 			}
 		}
 	}
 }
 
 // Sends the file to be scraped, and once that is complete, it deletes the cached file
-func processFile(filename string) {
-	ParseCal(filename)
+func processFile(fid FilesIds) {
+	ParseCal(fid)
 
 	// Remove the cache
-	os.Remove(filename)
+	os.Remove(fid.filename)
 }
 
 // Scrapes all files in the channel
-func processAll(chFiles chan string) {
+func processAll(chFiles chan FilesIds) {
 	for filename := range chFiles {
 		go processFile(filename)
 	}
@@ -106,8 +115,9 @@ func processAll(chFiles chan string) {
 //Runs the main program
 func FuckIt() {
 	//Channels
-	chIds := make(chan int)      //Channel of ids to be downloaded
-	chFiles := make(chan string) //Channel of filenames to be scraped
+	chIds := make(chan int) //Channel of ids to be downloaded
+
+	chFiles := make(chan FilesIds) //Channel of filenames to be scraped
 
 	go GetIds(chIds) //Populate the URLs to be downloaded
 

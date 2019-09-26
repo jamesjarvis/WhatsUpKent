@@ -9,6 +9,7 @@ import (
 func main() {
 	// scrape.FuckIt()
 
+	// Setup database connection
 	client := db.NewClient()
 	err := db.Setup(client)
 	if err != nil {

@@ -21,7 +21,7 @@ type Module struct {
 type Scrape struct {
 	UID         string     `json:"uid,omitempty"`
 	ID          int        `json:"id,omitempty"`
-	LastScraped *time.Time `json:"last_scraped,omitempty"`
+	LastScraped time.Time `json:"last_scraped,omitempty"`
 	FoundEvent  []Event    `json:"found_event,omitempty"`
 	DType       []string   `json:"dgraph.type,omitempty"`
 }
