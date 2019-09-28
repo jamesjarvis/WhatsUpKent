@@ -5,13 +5,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-// Sets up a gRPC and returns a new dgraph connection
+// NewClient sets up a gRPC and returns a new dgraph connection
 func NewClient() *dgo.Dgraph {
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
@@ -29,6 +29,7 @@ func NewClient() *dgo.Dgraph {
 	)
 }
 
+// Setup initiates the schema into the database
 func Setup(c *dgo.Dgraph) error {
 	// Install a schema into dgraph. Accounts have a `name` and a `balance`.
 	err := c.Alter(context.Background(), &api.Operation{

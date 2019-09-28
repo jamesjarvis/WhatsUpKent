@@ -11,63 +11,65 @@ type loc struct {
 
 type Module struct {
 	UID     string `json:"uid,omitempty"`
-	Code    string `json:"code,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Subject string `json:"subject,omitempty"`
-	// URL     string   `json:"url,omitempty"`
+	Code    string `json:"module.code,omitempty"`
+	Name    string `json:"module.name,omitempty"`
+	Subject string `json:"module.subject,omitempty"`
+	// URL     string   `json:"module.url,omitempty"`
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
 type Scrape struct {
 	UID         string     `json:"uid,omitempty"`
-	ID          int        `json:"id,omitempty"`
-	LastScraped time.Time `json:"last_scraped,omitempty"`
-	FoundEvent  []Event    `json:"found_event,omitempty"`
+	ID          int        `json:"scrape.id,omitempty"`
+	LastScraped *time.Time `json:"scrape.last_scraped,omitempty"`
+	FoundEvent  []Event    `json:"scrape.found_event,omitempty"`
 	DType       []string   `json:"dgraph.type,omitempty"`
 }
 
 type Person struct {
 	UID   string   `json:"uid,omitempty"`
-	Name  string   `json:"name,omitempty"`
-	Email string   `json:"email,omitempty"`
+	Name  string   `json:"person.name,omitempty"`
+	Email string   `json:"person.email,omitempty"`
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
 type Location struct {
 	UID            string   `json:"uid,omitempty"`
-	Name           string   `json:"name,omitempty"`
-	Location       loc      `json:"loc,omitempty"`
-	DisabledAccess bool     `json:"disabled_access,omitempty"`
+	Name           string   `json:"location.name,omitempty"`
+	Location       loc      `json:"location.loc,omitempty"`
+	DisabledAccess bool     `json:"location.disabled_access,omitempty"`
 	DType          []string `json:"dgraph.type,omitempty"`
 }
 
 type Event struct {
 	UID          string     `json:"uid,omitempty"`
-	ID           string     `json:"id,omitempty"`
-	Title        string     `json:"title,omitempty"`
-	Description  string     `json:"description,omitempty"`
-	StartDate    *time.Time `json:"start_date,omitempty"`
-	EndDate      *time.Time `json:"end_date,omitempty"`
-	Organiser    []Person   `json:"organiser,omitempty"`
-	PartOfModule []Module   `json:"part_of_module,omitempty"`
-	Location     []Location `json:"location,omitempty"`
+	ID           string     `json:"event.id,omitempty"`
+	Title        string     `json:"event.title,omitempty"`
+	Description  string     `json:"event.description,omitempty"`
+	StartDate    *time.Time `json:"event.start_date,omitempty"`
+	EndDate      *time.Time `json:"event.end_date,omitempty"`
+	Organiser    []Person   `json:"event.organiser,omitempty"`
+	PartOfModule []Module   `json:"event.part_of_module,omitempty"`
+	Location     []Location `json:"event.location,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
-// The database schema
+// Schema is the database schema
 var Schema = `
-title: string @index(fulltext) .
-start_date: datetime .
-end_date: datetime .
-organiser: [uid] @reverse .
-part_of_module: [uid] @reverse .
-location: [uid] @reverse .
+event.title: string @index(fulltext) .
+event.start_date: datetime .
+event.end_date: datetime .
+event.organiser: [uid] @reverse .
+event.part_of_module: [uid] @reverse .
+event.location: [uid] @reverse .
 
-code: string .
-name: string @index(fulltext) .
-subject: string @index(fulltext) .
-found_event: [uid] @reverse .
+module.code: string .
+module.name: string @index(fulltext) .
+module.subject: string @index(fulltext) .
+
+scrape.found_event: [uid] @reverse .
+scrape.id: int @index(int) .
 
 type Loc {
   type: string
@@ -75,36 +77,36 @@ type Loc {
 }
 
 type Location {
-	name: string
-	loc: Loc
-	disabled_access: bool
+	location.name: string
+	location.loc: Loc
+	location.disabled_access: bool
 }
 
 type Module {
-	code: string
-	name: string
-	subject: string
+	module.code: string
+	module.name: string
+	module.subject: string
 }
 
 type Person {
-	name: string
-	email: string
+	person.name: string
+	person.email: string
 }
 
 type Scrape {
-	id: int
-	last_scraped: datetime
-	found_event: [Event]
+	scrape.id: int
+	scrape.last_scraped: datetime
+	scrape.found_event: [Event]
 }
 
 type Event {
-	id: string
-	title: string
-	description: string
-	start_date: datetime
-	end_date: datetime
-	organiser: [Person]
-	part_of_module: [Module]
-	location: [Location]
+	event.id: string
+	event.title: string
+	event.description: string
+	event.start_date: datetime
+	event.end_date: datetime
+	event.organiser: [Person]
+	event.part_of_module: [Module]
+	event.location: [Location]
 }
 `

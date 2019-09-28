@@ -2,10 +2,12 @@ package scrape
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/apognu/gocal"
+	"github.com/dgraph-io/dgo/v2"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -19,23 +21,34 @@ import (
 // Send the actual filename over to another pool of workers
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
-// Opens the file and starts the parsing
-func ParseCal(fid FilesIds) {
+// ParseCal opens the file and starts the parsing
+func ParseCal(c *dgo.Dgraph, fid FilesIds) {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
 	// start, end := time.Now(), time.Now().Add(12*30*24*time.Hour)
 
-	c := gocal.NewParser(f)
+	parser := gocal.NewParser(f)
 	// c.Start, c.End = &start, &end
-	c.Parse()
+	parser.Parse()
+
+	currentTime := time.Now()
 
 	scrapeEvent := db.Scrape{
 		ID:          fid.id,
-		LastScraped: time.Now(),
+		LastScraped: &currentTime,
 	}
 
-	for _, e := range c.Events {
-		fmt.Printf("%s on %s by %s", e.Summary, e.Start, e.Organizer.Cn)
+	uid, err := db.UpsertScrape(c, scrapeEvent)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	scrapeEvent.UID = uid
+	// fmt.Print(scrapeEvent)
+	fmt.Printf("Me: %+v\n", scrapeEvent)
+
+	// for _, e := range parser.Events {
+	// 	fmt.Printf("%s on %s by %s", e.Summary, e.Start, e.Organizer.Cn)
+	// }
 }
