@@ -89,7 +89,7 @@ func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event) (*db
 	}
 	_, er1 := db.UpsertEvent(c, event)
 	if er1 != nil {
-		return nil, err
+		return nil, er1
 	}
 	//Exits here if it created a new event, and has then retrieved that event from the database
 	return db.GetEvent(c, event)

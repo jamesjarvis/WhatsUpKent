@@ -1,0 +1,103 @@
+package scrape
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
+)
+
+// This file is going to scrape all of the locations it can find from the kent API
+// Then save it to the database
+
+//types
+
+//LocationInfo is one of the objects the kent API returns
+//Most of the fields are empty, and are all string types, because thank you kent
+type LocationInfo struct {
+	BookBy         string `json:"book_by,omitempty"`
+	Campus         string `json:"campus,omitempty"`
+	CampusID       string `json:"campus_id,omitempty"`
+	Capacity       string `json:"capacity,omitempty"`
+	Classification string `json:"classification,omitempty"`
+	Department     string `json:"department,omitempty"`
+	Directions     string `json:"directions,omitempty"`
+	DisabledAccess string `json:"disabled_access,omitempty"`
+	ID             string `json:"id,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Photo          string `json:"photo,omitempty"`
+	Site           string `json:"site,omitempty"`
+	SiteID         string `json:"site_id,omitempty"`
+	Type           string `json:"type,omitempty"`
+	UFName         string `json:"uf_name,omitempty"`
+}
+
+func downloadAndMarshal() (*[]LocationInfo, error) {
+	url := "https://api.kent.ac.uk/api/v1/rooms"
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, err
+	}
+
+	var result map[string]LocationInfo
+	jsonErr := json.Unmarshal([]byte(body), &result)
+	if jsonErr != nil {
+		return nil, err
+	}
+	locations := make([]LocationInfo, 0)
+	for _, val := range result {
+		locations = append(locations, val)
+	}
+
+	return &locations, nil
+}
+
+// numberLocationsAlready returns the count of locations already stored in the db
+func numberLocationsAlready(c *dgo.Dgraph) (*int, error) {
+	countCurrent, err := db.CountNodesWithField(c, "location.id")
+	if err != nil {
+		return nil, err
+	}
+
+	return countCurrent, nil
+}
+
+func yesNoToBool(s string) bool {
+	return s == "Yes" || s == "yes"
+}
+
+//ScrapeLocations scrapes the locations from kent api if they dont already exist
+func ScrapeLocations(c *dgo.Dgraph) error {
+	n, countErr := numberLocationsAlready(c)
+	if countErr != nil {
+		return countErr
+	}
+	if *n == 0 {
+		apiLocations, apiErr := downloadAndMarshal()
+		if apiErr != nil {
+			return apiErr
+		}
+
+		for _, loc := range *apiLocations {
+			tempLoc := db.Location{
+				ID:             loc.ID,
+				Name:           loc.UFName,
+				DisabledAccess: yesNoToBool(loc.DisabledAccess),
+			}
+
+			_, er1 := db.UpsertLocation(c, tempLoc)
+			if er1 != nil {
+				return er1
+			}
+		}
+	}
+
+	return nil
+}

@@ -35,6 +35,7 @@ type Person struct {
 
 type Location struct {
 	UID            string   `json:"uid,omitempty"`
+	ID             string   `json:"location.id,omitempty"`
 	Name           string   `json:"location.name,omitempty"`
 	Location       loc      `json:"location.loc,omitempty"`
 	DisabledAccess bool     `json:"location.disabled_access,omitempty"`
@@ -65,6 +66,8 @@ event.organiser: [uid] @reverse .
 event.part_of_module: [uid] @reverse .
 event.location: [uid] @reverse .
 
+location.id: string @index(exact) .
+
 module.code: string .
 module.name: string @index(fulltext) .
 module.subject: string @index(fulltext) .
@@ -78,6 +81,7 @@ type Loc {
 }
 
 type Location {
+	location.id: string
 	location.name: string
 	location.loc: Loc
 	location.disabled_access: bool

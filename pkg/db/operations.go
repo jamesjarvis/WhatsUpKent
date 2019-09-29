@@ -251,3 +251,93 @@ func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
 	}
 	return assigned, nil
 }
+
+//GetLocationFromKentSlug returns a matching location from the slug kent uses internally
+func GetLocationFromKentSlug(c *dgo.Dgraph, slug string) (*Location, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+	q :=
+		`query FindLocationFromSlug($id: string) {
+			findLocation(func: eq(location.id, $id)) {
+				uid
+				location.id
+				location.name
+				location.disabled_access
+			}
+		}
+	`
+	variables := make(map[string]string)
+	variables["$id"] = slug
+
+	resp, err := txn.QueryWithVars(ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		FindLocation []Location `json:"findLocation"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+	if len(r.FindLocation) == 0 {
+		return nil, nil
+	}
+
+	return &r.FindLocation[0], nil
+}
+
+// UpsertLocation upserts the location struct into the database
+func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
+	mu := &api.Mutation{
+		CommitNow: true,
+	}
+	ctx := context.Background()
+	pb, err := json.Marshal(loc)
+	if err != nil {
+		return nil, err
+	}
+
+	mu.SetJson = pb
+	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	if err != nil {
+		return nil, err
+	}
+	return assigned, nil
+}
+
+// CountNodesWithField returns the number of nodes which contain that field
+// this is a good indicator of the number of nodes of a certain type
+func CountNodesWithField(c *dgo.Dgraph, f string) (*int, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+	q :=
+		`query Count($field: string) {
+			nodeCount(func: has($field)) {
+				nodeCount: count(uid)
+			}
+		}
+	`
+	variables := make(map[string]string)
+	variables["$field"] = f
+
+	resp, err := txn.QueryWithVars(ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		NodeCount []struct {
+			NodeCount int `json:"nodeCount"`
+		} `json:"nodeCount"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r.NodeCount[0].NodeCount, nil
+}

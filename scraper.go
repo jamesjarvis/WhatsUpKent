@@ -16,5 +16,14 @@ func main() {
 	}
 	log.Print("Schema successfully updated")
 
+	// Update locations
+	errLoc := scrape.ScrapeLocations(client)
+	if errLoc != nil {
+		log.Fatal(errLoc)
+	}
+
+	// TODO: Update Modules
+
+	// Update the ical feeds
 	scrape.FuckIt(client)
 }
