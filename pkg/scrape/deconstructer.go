@@ -1,9 +1,10 @@
 package scrape
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/apognu/gocal"
@@ -22,7 +23,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid FilesIds) {
+func ParseCal(c *dgo.Dgraph, fid *FilesIds) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -39,16 +40,72 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds) {
 		LastScraped: &currentTime,
 	}
 
-	uid, err := db.UpsertScrape(c, scrapeEvent)
+	currentScrape, err := db.GetScrape(c, scrapeEvent)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	scrapeEvent.UID = uid
-	// fmt.Print(scrapeEvent)
-	fmt.Printf("Me: %+v\n", scrapeEvent)
+	events := make([]db.Event, 0)
 
-	// for _, e := range parser.Events {
-	// 	fmt.Printf("%s on %s by %s", e.Summary, e.Start, e.Organizer.Cn)
-	// }
+	for _, e := range parser.Events {
+		event, err := generateEvent(c, fid, &e) //Currently getting an int error with the thing
+		if err != nil {
+			log.Fatal(err)
+		}
+		events = append(events, *event)
+	}
+
+	if currentScrape != nil {
+		scrapeEvent.UID = currentScrape.UID
+	}
+	scrapeEvent.FoundEvent = events
+	_, upsertErr := db.UpsertScrape(c, scrapeEvent)
+	if upsertErr != nil {
+		return upsertErr
+	}
+
+	return nil
+}
+
+func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event) (*db.Event, error) {
+	eventID, err := generateEventID(fid, scrapedEvent.Uid)
+	if err != nil {
+		return nil, err
+	}
+	event := db.Event{
+		ID:          eventID, //Sort this out
+		Title:       scrapedEvent.Summary,
+		Description: scrapedEvent.Description,
+		StartDate:   scrapedEvent.Start,
+		EndDate:     scrapedEvent.End,
+	}
+
+	currentEvent, err := db.GetEvent(c, event)
+	if err != nil {
+		return nil, err
+	}
+	if currentEvent != nil {
+		event.UID = currentEvent.UID
+	}
+	_, er1 := db.UpsertEvent(c, event)
+	if er1 != nil {
+		return nil, err
+	}
+	//Exits here if it created a new event, and has then retrieved that event from the database
+	return db.GetEvent(c, event)
+}
+
+func generateEventID(fid *FilesIds, currentID string) (string, error) {
+	id := fid.id
+	r1, err1 := regexp.Compile(strconv.Itoa(id) + "_")
+	if err1 != nil {
+		return "", err1
+	}
+	r2, err2 := regexp.Compile("@kent.ac.uk")
+	if err2 != nil {
+		return "", err2
+	}
+	temp1 := r1.ReplaceAllLiteralString(currentID, "")
+	temp2 := r2.ReplaceAllLiteralString(temp1, "")
+	return temp2, nil
 }

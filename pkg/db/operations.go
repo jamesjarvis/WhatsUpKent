@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -29,12 +30,12 @@ func getScrapeWithID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
 		`query FindScrape($uid: string) {
 			findScrape(func: uid($uid)) {
 				uid
-				id
-				last_scraped
-				found_event {
+				scrape.id
+				scrape.last_scraped
+				scrape.found_event {
 					uid
-					id
-					title
+					event.id
+					event.title
 				}
 			}
 		}
@@ -66,21 +67,21 @@ func getScrapeWithoutID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
 	txn := c.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
-		`query FindScrapeNoID($id: string) {
-			findScrapeNoID(func: eq(id, $id)) {
+		`query FindScrapeNoID($id: int) {
+			findScrapeNoID(func: eq(scrape.id, $id)) {
 				uid
-				id
-				last_scraped
-				found_event {
+				scrape.id
+				scrape.last_scraped
+				scrape.found_event {
 					uid
-					id
-					title
+					event.id
+					event.title
 				}
 			}
 		}
 	`
 	variables := make(map[string]string)
-	variables["$id"] = string(scrape.ID)
+	variables["$id"] = strconv.Itoa(scrape.ID)
 
 	resp, err := txn.QueryWithVars(ctx, q, variables)
 	if err != nil {
@@ -96,28 +97,157 @@ func getScrapeWithoutID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
 		return nil, err
 	}
 	if len(r.FindScrapeNoID) == 0 {
-		return nil, fmt.Errorf("No Scrape found with id %d", scrape.ID)
+		return nil, nil
 	}
 
 	return &r.FindScrapeNoID[0], nil
 }
 
 // UpsertScrape upserts the scrape struct into the database
-func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (string, error) {
+func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (*api.Response, error) {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
 	ctx := context.Background()
 	pb, err := json.Marshal(scrape)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	mu.SetJson = pb
 	assigned, err := c.NewTxn().Mutate(ctx, mu)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	fmt.Print(assigned.Uids)
-	return assigned.Uids["blank-0"], nil
+	return assigned, nil
+}
+
+// GetEvent should recieve a dgraph client and an event struct,
+// and return the official event struct from the database, complete with Uid for referencing
+// if no such event exists, then it returns an error
+func GetEvent(c *dgo.Dgraph, event Event) (*Event, error) {
+	if event.UID != "" {
+		return getEventWithUID(c, event)
+	}
+	return getEventWithoutUID(c, event)
+}
+
+func getEventWithUID(c *dgo.Dgraph, event Event) (*Event, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+	q :=
+		`query FindEvent($id: string) {
+			findEvent(func: uid($id)) {
+				uid
+				event.id
+				event.title
+				event.description
+				event.start_date
+				event.end_date
+				event.organiser {
+					uid
+					person.name
+				}
+				event.part_of_module {
+					uid
+					module.code
+				}
+				event.location {
+					uid
+					location.name
+				}
+			}
+		}
+	`
+	variables := make(map[string]string)
+	variables["$id"] = event.UID
+
+	resp, err := txn.QueryWithVars(ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		FindEvent []Event `json:"findEvent"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.FindEvent) == 0 {
+		return nil, fmt.Errorf("No Event found with uid %s", event.UID)
+	}
+
+	return &r.FindEvent[0], nil
+}
+
+func getEventWithoutUID(c *dgo.Dgraph, event Event) (*Event, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+	q :=
+		`query FindEventNoUID($id: string) {
+			findEvent(func: eq(event.id, $id)) {
+				uid
+				event.id
+				event.title
+				event.description
+				event.start_date
+				event.end_date
+				event.organiser {
+					uid
+					person.name
+				}
+				event.part_of_module {
+					uid
+					module.code
+				}
+				event.location {
+					uid
+					location.name
+				}
+			}
+		}
+	`
+	variables := make(map[string]string)
+	variables["$id"] = event.ID
+
+	resp, err := txn.QueryWithVars(ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		FindEvent []Event `json:"findEvent"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+	if len(r.FindEvent) == 0 {
+		return nil, nil
+	}
+
+	return &r.FindEvent[0], nil
+}
+
+// UpsertEvent upserts the event struct into the database
+func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
+	mu := &api.Mutation{
+		CommitNow: true,
+	}
+	ctx := context.Background()
+	pb, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	mu.SetJson = pb
+	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	if err != nil {
+		return nil, err
+	}
+	return assigned, nil
 }

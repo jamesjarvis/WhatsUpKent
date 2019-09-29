@@ -57,9 +57,10 @@ type Event struct {
 
 // Schema is the database schema
 var Schema = `
+event.id: string @index(exact) .
 event.title: string @index(fulltext) .
-event.start_date: datetime .
-event.end_date: datetime .
+event.start_date: datetime @index(day) .
+event.end_date: datetime @index(day).
 event.organiser: [uid] @reverse .
 event.part_of_module: [uid] @reverse .
 event.location: [uid] @reverse .

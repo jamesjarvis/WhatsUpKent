@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,7 +12,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-//Types
+// FilesIds for handling the currently scraped file
 type FilesIds struct {
 	id       int
 	filename string
@@ -61,7 +62,7 @@ func DownloadFile(fid FilesIds) error {
 	// Create the file
 	out, err := os.Create(fid.filename)
 	if err != nil {
-		fmt.Print(err)
+		log.Fatal(err)
 		return err
 	}
 	defer out.Close()
@@ -92,7 +93,7 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds) {
 				filename: FormatFilename(id),
 			}
 			err := DownloadFile(fid)
-			fmt.Println("doing work!", id, "worknumber", worknumber)
+
 			if err == nil {
 				chFiles <- fid
 			}
@@ -102,7 +103,10 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds) {
 
 // Sends the file to be scraped, and once that is complete, it deletes the cached file
 func processFile(c *dgo.Dgraph, fid FilesIds) {
-	ParseCal(c, fid)
+	err := ParseCal(c, &fid)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Remove the cache
 	os.Remove(fid.filename)
