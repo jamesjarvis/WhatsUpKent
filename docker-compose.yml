@@ -33,6 +33,8 @@ services:
       - zero
     networks:
       - backend
+    logging: # This is only to disable logging for easier local debug
+      driver: none
   ratel:
     image: dgraph/dgraph:v1.1.0
     volumes:

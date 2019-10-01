@@ -56,6 +56,41 @@ type Event struct {
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
+//Equal checks if the two events are equal
+//Does not check UID, as the contents could change
+//Does not check the contents of Location, as these are decided at the start
+func (e Event) Equal(e2 Event) bool {
+	if len(e.Location) != len(e2.Location) {
+		return false
+	}
+	if len(e.Organiser) != len(e2.Organiser) {
+		return false
+	}
+	if len(e.PartOfModule) != len(e2.PartOfModule) {
+		return false
+	}
+	locEqual := true
+	for _, loc := range e.Location {
+		locEqualTemp := false
+		for _, loc2 := range e2.Location {
+			locEqualTemp = locEqualTemp || loc.Equal(loc2)
+		}
+		locEqual = locEqual && locEqualTemp
+	}
+
+	return (e.ID == e2.ID &&
+		e.Title == e2.Title &&
+		// e.Description == e2.Description &&
+		e.StartDate.Equal(*e2.StartDate) &&
+		e.EndDate.Equal(*e2.EndDate) &&
+		locEqual)
+}
+
+// Equal returns whether or not the two locations are equivalent
+func (l Location) Equal(l2 Location) bool {
+	return (l.UID == l2.UID || l.ID == l2.ID || l.Name == l2.Name)
+}
+
 // Schema is the database schema
 var Schema = `
 event.id: string @index(exact) .

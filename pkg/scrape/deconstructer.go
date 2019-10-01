@@ -1,14 +1,15 @@
 package scrape
 
 import (
-	"log"
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/apognu/gocal"
 	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/y"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -23,7 +24,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid *FilesIds) error {
+func ParseCal(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -31,7 +32,10 @@ func ParseCal(c *dgo.Dgraph, fid *FilesIds) error {
 
 	parser := gocal.NewParser(f)
 	// c.Start, c.End = &start, &end
-	parser.Parse()
+	parseErr := parser.Parse()
+	if parseErr != nil {
+		return parseErr
+	}
 
 	currentTime := time.Now()
 
@@ -48,11 +52,14 @@ func ParseCal(c *dgo.Dgraph, fid *FilesIds) error {
 	events := make([]db.Event, 0)
 
 	for _, e := range parser.Events {
-		event, err := generateEvent(c, fid, &e) //Currently getting an int error with the thing
-		if err != nil {
-			log.Fatal(err)
+		event, genErr := generateEvent(c, fid, &e, mx) //Currently getting an int error with the thing
+		if genErr != nil {
+			return genErr
 		}
-		events = append(events, *event)
+		tempEvent := db.Event{
+			UID: event.UID,
+		}
+		events = append(events, tempEvent)
 	}
 
 	if currentScrape != nil {
@@ -67,32 +74,78 @@ func ParseCal(c *dgo.Dgraph, fid *FilesIds) error {
 	return nil
 }
 
-func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event) (*db.Event, error) {
-	eventID, err := generateEventID(fid, scrapedEvent.Uid)
-	if err != nil {
-		return nil, err
+func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event, mx *sync.Mutex) (*db.Event, error) {
+	eventID, idErr := generateEventID(fid, scrapedEvent.Uid)
+	if idErr != nil {
+		return nil, idErr
 	}
+
+	locations := make([]db.Location, 0)
+	loc, locErr := db.GetLocationFromKentSlug(c, scrapedEvent.Location)
+	if locErr != nil {
+		return nil, locErr
+	}
+	if loc != nil {
+		// tempLoc := db.Location{
+		// 	UID: loc.UID,
+		// }
+		// locations = append(locations, tempLoc)
+		locations = append(locations, *loc)
+	}
+
 	event := db.Event{
 		ID:          eventID, //Sort this out
 		Title:       scrapedEvent.Summary,
 		Description: scrapedEvent.Description,
 		StartDate:   scrapedEvent.Start,
 		EndDate:     scrapedEvent.End,
+		Location:    locations,
 	}
 
-	currentEvent, err := db.GetEvent(c, event)
-	if err != nil {
-		return nil, err
+	currentEvent, getErr := db.GetEvent(c, event)
+	if getErr != nil {
+		return nil, getErr
 	}
 	if currentEvent != nil {
 		event.UID = currentEvent.UID
+		//Check if the event is basically the same
+		//If it is, then dont bother upserting it.
+		if event.Equal(*currentEvent) {
+			return currentEvent, nil
+		}
 	}
-	_, er1 := db.UpsertEvent(c, event)
-	if er1 != nil {
-		return nil, er1
+	upsertErr := UpsertEventRetryable(c, event, false)
+	if upsertErr != nil {
+		if upsertErr == y.ErrAborted { //If it aborted due to race condition
+			//lock
+			mx.Lock()
+			upsertErrRetried := UpsertEventRetryable(c, event, true)
+			mx.Unlock()
+			//unlock
+			if upsertErrRetried != nil {
+				return nil, upsertErrRetried
+			}
+			//GOOD EXIT
+			return db.GetEvent(c, event)
+		}
+		return nil, upsertErr
 	}
+
 	//Exits here if it created a new event, and has then retrieved that event from the database
 	return db.GetEvent(c, event)
+}
+
+// UpsertEventRetryable provides a method to recursively keep retrying to upsert a specific event
+// This is intended to be used within a mutual exclusion lock to prevent race conditions
+func UpsertEventRetryable(c *dgo.Dgraph, e db.Event, retry bool) error {
+	_, er1 := db.UpsertEvent(c, e)
+	if er1 != nil {
+		if er1 == y.ErrAborted && retry {
+			return UpsertEventRetryable(c, e, retry)
+		}
+		return er1
+	}
+	return nil
 }
 
 func generateEventID(fid *FilesIds, currentID string) (string, error) {

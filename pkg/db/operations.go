@@ -8,6 +8,7 @@ import (
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v2/y"
 )
 
 // This file should contain methods for interacting with the data easily.
@@ -154,6 +155,7 @@ func getEventWithUID(c *dgo.Dgraph, event Event) (*Event, error) {
 				}
 				event.location {
 					uid
+					location.id
 					location.name
 				}
 			}
@@ -205,6 +207,7 @@ func getEventWithoutUID(c *dgo.Dgraph, event Event) (*Event, error) {
 				}
 				event.location {
 					uid
+					location.id
 					location.name
 				}
 			}
@@ -239,15 +242,17 @@ func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
 		CommitNow: true,
 	}
 	ctx := context.Background()
-	pb, err := json.Marshal(event)
-	if err != nil {
-		return nil, err
+	pb, jsonErr := json.Marshal(event)
+	if jsonErr != nil {
+		return nil, jsonErr
 	}
 
 	mu.SetJson = pb
-	assigned, err := c.NewTxn().Mutate(ctx, mu)
-	if err != nil {
-		return nil, err
+	assigned, upsertErr := c.NewTxn().Mutate(ctx, mu)
+	if upsertErr != nil {
+		if upsertErr == y.ErrAborted {
+		}
+		return nil, upsertErr
 	}
 	return assigned, nil
 }

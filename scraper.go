@@ -16,15 +16,22 @@ func main() {
 	}
 	log.Print("Schema successfully updated")
 
+	// Setup Scraper
+	config := scrape.InitialConfig{
+		StartRange: 130000,
+		EndRange:   134000,
+	}
+
 	// Update locations
 	errLoc := scrape.ScrapeLocations(client)
 	if errLoc != nil {
 		log.Fatal(errLoc)
 	}
-	log.Println("Location scraping complete.")
+	log.Println("------------- Location scraping complete -------------")
 
 	// TODO: Update Modules
 
 	// Update the ical feeds
-	// scrape.FuckIt(client)
+	scrape.FuckIt(&config, client)
+	log.Println("------------- Event scraping complete -------------")
 }
