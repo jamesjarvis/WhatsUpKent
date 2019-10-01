@@ -38,7 +38,7 @@ type Location struct {
 	ID             string   `json:"location.id,omitempty"`
 	Name           string   `json:"location.name,omitempty"`
 	Location       loc      `json:"location.loc,omitempty"`
-	DisabledAccess bool     `json:"location.disabled_access,omitempty"`
+	DisabledAccess bool     `json:"location.disabled_access"`
 	DType          []string `json:"dgraph.type,omitempty"`
 }
 

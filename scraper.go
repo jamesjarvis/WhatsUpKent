@@ -21,9 +21,10 @@ func main() {
 	if errLoc != nil {
 		log.Fatal(errLoc)
 	}
+	log.Println("Location scraping complete.")
 
 	// TODO: Update Modules
 
 	// Update the ical feeds
-	scrape.FuckIt(client)
+	// scrape.FuckIt(client)
 }

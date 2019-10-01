@@ -34,6 +34,22 @@ type LocationInfo struct {
 	UFName         string `json:"uf_name,omitempty"`
 }
 
+//UnmarshalJSON only exists to fix errors with unmarshaling the json from the api
+func (l *LocationInfo) UnmarshalJSON(d []byte) error {
+	type T2 LocationInfo // create new type with same structure as T but without its method set!
+	x := struct {
+		T2                   // embed
+		Capacity json.Number `json:"capacity"`
+	}{T2: T2(*l)} // don't forget this, if you do and 't' already has some fields set you would lose them
+
+	if err := json.Unmarshal(d, &x); err != nil {
+		return err
+	}
+	*l = LocationInfo(x.T2)
+	l.Capacity = x.Capacity.String()
+	return nil
+}
+
 func downloadAndMarshal() (*[]LocationInfo, error) {
 	url := "https://api.kent.ac.uk/api/v1/rooms"
 	resp, err := http.Get(url)
@@ -43,13 +59,13 @@ func downloadAndMarshal() (*[]LocationInfo, error) {
 	defer resp.Body.Close()
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, err
+		return nil, readErr
 	}
 
 	var result map[string]LocationInfo
 	jsonErr := json.Unmarshal([]byte(body), &result)
 	if jsonErr != nil {
-		return nil, err
+		return nil, jsonErr
 	}
 	locations := make([]LocationInfo, 0)
 	for _, val := range result {

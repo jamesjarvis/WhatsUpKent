@@ -308,25 +308,26 @@ func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
 	return assigned, nil
 }
 
-// CountNodesWithField returns the number of nodes which contain that field
+// CountNodesWithField returns the number of nodes which contain the location.id field
 // this is a good indicator of the number of nodes of a certain type
+// had to modify due to issues with variable passing
 func CountNodesWithField(c *dgo.Dgraph, f string) (*int, error) {
 	txn := c.NewReadOnlyTxn()
 	ctx := context.Background()
+
 	q :=
-		`query Count($field: string) {
-			nodeCount(func: has($field)) {
+		`query Count {
+			nodeCount(func: has(location.id)) {
 				nodeCount: count(uid)
 			}
 		}
-	`
-	variables := make(map[string]string)
-	variables["$field"] = f
+		`
 
-	resp, err := txn.QueryWithVars(ctx, q, variables)
+	resp, err := txn.Query(ctx, q)
 	if err != nil {
 		return nil, err
 	}
+
 	type Root struct {
 		NodeCount []struct {
 			NodeCount int `json:"nodeCount"`
