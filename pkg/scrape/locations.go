@@ -75,23 +75,13 @@ func downloadAndMarshal() (*[]LocationInfo, error) {
 	return &locations, nil
 }
 
-// numberLocationsAlready returns the count of locations already stored in the db
-func numberLocationsAlready(c *dgo.Dgraph) (*int, error) {
-	countCurrent, err := db.CountNodesWithField(c, "location.id")
-	if err != nil {
-		return nil, err
-	}
-
-	return countCurrent, nil
-}
-
 func yesNoToBool(s string) bool {
 	return s == "Yes" || s == "yes"
 }
 
 //ScrapeLocations scrapes the locations from kent api if they dont already exist
 func ScrapeLocations(c *dgo.Dgraph) error {
-	n, countErr := numberLocationsAlready(c)
+	n, countErr := db.CountNodesWithFieldUnsafe(c, "location.id")
 	if countErr != nil {
 		return countErr
 	}

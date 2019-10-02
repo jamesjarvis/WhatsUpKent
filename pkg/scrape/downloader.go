@@ -41,7 +41,6 @@ func GetIds(config *InitialConfig, chIds chan int) error {
 
 // FormatURL formats the id to the actual ical file url
 func FormatURL(id int) string {
-	// https://www.kent.ac.uk/timetabling/ical/132056.ics
 	return fmt.Sprintf("https://www.kent.ac.uk/timetabling/ical/%d.ics", id)
 }
 

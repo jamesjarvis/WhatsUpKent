@@ -29,7 +29,12 @@ func main() {
 	}
 	log.Println("------------- Location scraping complete -------------")
 
-	// TODO: Update Modules
+	// Update Modules
+	errMod := scrape.ScrapeModules(client)
+	if errMod != nil {
+		log.Fatal(errMod)
+	}
+	log.Println("------------- Module scraping complete -------------")
 
 	// Update the ical feeds
 	scrape.FuckIt(&config, client)

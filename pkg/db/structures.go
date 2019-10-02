@@ -69,6 +69,7 @@ func (e Event) Equal(e2 Event) bool {
 	if len(e.PartOfModule) != len(e2.PartOfModule) {
 		return false
 	}
+
 	locEqual := true
 	for _, loc := range e.Location {
 		locEqualTemp := false
@@ -78,17 +79,32 @@ func (e Event) Equal(e2 Event) bool {
 		locEqual = locEqual && locEqualTemp
 	}
 
+	modEqual := true
+	for _, mod := range e.PartOfModule {
+		modEqualTemp := false
+		for _, mod2 := range e2.PartOfModule {
+			modEqualTemp = modEqualTemp || mod.Equal(mod2)
+		}
+		modEqual = modEqual && modEqualTemp
+	}
+
 	return (e.ID == e2.ID &&
 		e.Title == e2.Title &&
 		// e.Description == e2.Description &&
 		e.StartDate.Equal(*e2.StartDate) &&
 		e.EndDate.Equal(*e2.EndDate) &&
-		locEqual)
+		locEqual &&
+		modEqual)
 }
 
 // Equal returns whether or not the two locations are equivalent
 func (l Location) Equal(l2 Location) bool {
 	return (l.UID == l2.UID || l.ID == l2.ID || l.Name == l2.Name)
+}
+
+// Equal returns whether or not the two modules are equivalent
+func (m Module) Equal(m2 Module) bool {
+	return (m.UID == m2.UID || m.Code == m2.Code || m.Name == m2.Name)
 }
 
 // Schema is the database schema
@@ -103,7 +119,7 @@ event.location: [uid] @reverse .
 
 location.id: string @index(exact) .
 
-module.code: string .
+module.code: string @index(exact) .
 module.name: string @index(fulltext) .
 module.subject: string @index(fulltext) .
 

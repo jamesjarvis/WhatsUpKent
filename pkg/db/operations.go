@@ -313,20 +313,76 @@ func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
 	return assigned, nil
 }
 
-// CountNodesWithField returns the number of nodes which contain the location.id field
+//GetModuleFromSDSCode returns a matching module from the slug kent uses internally, or nil if it doesnt exist
+func GetModuleFromSDSCode(c *dgo.Dgraph, slug string) (*Module, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+	q :=
+		`query FindModuleFromCode($id: string) {
+			findModule(func: eq(module.code, $id)) {
+				uid
+				module.code
+				module.name
+				module.subject
+			}
+		}
+	`
+	variables := make(map[string]string)
+	variables["$id"] = slug
+
+	resp, err := txn.QueryWithVars(ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		FindModule []Module `json:"findModule"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+	if len(r.FindModule) == 0 {
+		return nil, nil
+	}
+
+	return &r.FindModule[0], nil
+}
+
+// UpsertModule upserts the location struct into the database
+func UpsertModule(c *dgo.Dgraph, m Module) (*api.Response, error) {
+	mu := &api.Mutation{
+		CommitNow: true,
+	}
+	ctx := context.Background()
+	pb, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	mu.SetJson = pb
+	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	if err != nil {
+		return nil, err
+	}
+	return assigned, nil
+}
+
+// CountNodesWithFieldUnsafe returns the number of nodes which contain the specified field
 // this is a good indicator of the number of nodes of a certain type
-// had to modify due to issues with variable passing
-func CountNodesWithField(c *dgo.Dgraph, f string) (*int, error) {
+// this is unsafe, there is no input sanitation and is open to injection attacks
+func CountNodesWithFieldUnsafe(c *dgo.Dgraph, f string) (*int, error) {
 	txn := c.NewReadOnlyTxn()
 	ctx := context.Background()
 
-	q :=
+	q := fmt.Sprintf(
 		`query Count {
-			nodeCount(func: has(location.id)) {
+			nodeCount(func: has(%s)) {
 				nodeCount: count(uid)
 			}
 		}
-		`
+		`, f)
 
 	resp, err := txn.Query(ctx, q)
 	if err != nil {

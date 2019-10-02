@@ -109,16 +109,13 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 		return nil, idErr
 	}
 
+	//Locations connecting
 	locations := make([]db.Location, 0)
 	loc, locErr := db.GetLocationFromKentSlug(c, scrapedEvent.Location)
 	if locErr != nil {
 		return nil, locErr
 	}
 	if loc != nil {
-		// tempLoc := db.Location{
-		// 	UID: loc.UID,
-		// }
-		// locations = append(locations, tempLoc)
 		locations = append(locations, *loc)
 	} else {
 		locations = append(locations, db.Location{
@@ -126,13 +123,28 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 		})
 	}
 
+	//Modules connecting
+	modules := make([]db.Module, 0)
+	sdsCode, sdsErr := getModuleCodeFromEvent(scrapedEvent)
+	if sdsErr != nil {
+		return nil, sdsErr
+	}
+	mod, modErr := db.GetModuleFromSDSCode(c, sdsCode)
+	if modErr != nil {
+		return nil, modErr
+	}
+	if mod != nil {
+		modules = append(modules, *mod)
+	}
+
 	event := db.Event{
-		ID:          eventID, //Sort this out
-		Title:       scrapedEvent.Summary,
-		Description: scrapedEvent.Description,
-		StartDate:   scrapedEvent.Start,
-		EndDate:     scrapedEvent.End,
-		Location:    locations,
+		ID:           eventID, //Sort this out
+		Title:        scrapedEvent.Summary,
+		Description:  scrapedEvent.Description,
+		StartDate:    scrapedEvent.Start,
+		EndDate:      scrapedEvent.End,
+		Location:     locations,
+		PartOfModule: modules,
 	}
 
 	//Mutually exclude read,write operations on the database
@@ -184,4 +196,13 @@ func generateEventID(currentID string) (string, error) {
 	temp1 := r1.ReplaceAllLiteralString(currentID, "")
 	temp2 := r2.ReplaceAllLiteralString(temp1, "")
 	return temp2, nil
+}
+
+func getModuleCodeFromEvent(e *gocal.Event) (string, error) {
+	r, err := regexp.Compile(`[A-Z]{1,4}\d{1,4}`)
+	if err != nil {
+		return "", err
+	}
+	temp := r.FindString(e.Summary)
+	return temp, nil
 }
