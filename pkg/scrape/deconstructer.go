@@ -1,15 +1,14 @@
 package scrape
 
 import (
+	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/apognu/gocal"
 	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/y"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -24,7 +23,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) error {
+func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -50,17 +49,33 @@ func ParseCal(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) error {
 	}
 
 	events := make([]db.Event, 0)
+	eventsChan := make(chan gocal.Event, 10000)
+	resultsChan := make(chan db.Event, 10000)
+	var wg sync.WaitGroup
+
+	numberOfWorkers := 20
+
+	for i := 0; i <= numberOfWorkers; i++ {
+		wg.Add(1)
+		go handleGenerator(c, mx, eventsChan, resultsChan, &wg)
+	}
 
 	for _, e := range parser.Events {
-		event, genErr := generateEvent(c, fid, &e, mx) //Currently getting an int error with the thing
-		if genErr != nil {
-			return genErr
-		}
+		eventsChan <- e
+	}
+	close(eventsChan)
+
+	wg.Wait()
+	close(resultsChan)
+
+	for ev := range resultsChan {
 		tempEvent := db.Event{
-			UID: event.UID,
+			UID: ev.UID,
 		}
 		events = append(events, tempEvent)
 	}
+
+	log.Printf("Finally scraped %d, with %d events", fid.id, len(events))
 
 	if currentScrape != nil {
 		scrapeEvent.UID = currentScrape.UID
@@ -74,8 +89,22 @@ func ParseCal(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) error {
 	return nil
 }
 
-func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event, mx *sync.Mutex) (*db.Event, error) {
-	eventID, idErr := generateEventID(fid, scrapedEvent.Uid)
+func handleGenerator(c *dgo.Dgraph, mx *sync.Mutex, eventsChan <-chan gocal.Event, resultsChan chan<- db.Event, wg *sync.WaitGroup) {
+	for e := range eventsChan {
+		event, genErr := generateEvent(c, &e, mx)
+		if genErr != nil {
+			log.Fatal(genErr)
+		}
+		tempEvent := db.Event{
+			UID: event.UID,
+		}
+		resultsChan <- tempEvent
+	}
+	wg.Done()
+}
+
+func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*db.Event, error) {
+	eventID, idErr := generateEventID(scrapedEvent.Uid)
 	if idErr != nil {
 		return nil, idErr
 	}
@@ -91,6 +120,10 @@ func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event, mx *
 		// }
 		// locations = append(locations, tempLoc)
 		locations = append(locations, *loc)
+	} else {
+		locations = append(locations, db.Location{
+			Name: scrapedEvent.Location,
+		})
 	}
 
 	event := db.Event{
@@ -102,55 +135,45 @@ func generateEvent(c *dgo.Dgraph, fid *FilesIds, scrapedEvent *gocal.Event, mx *
 		Location:    locations,
 	}
 
-	currentEvent, getErr := db.GetEvent(c, event)
-	if getErr != nil {
-		return nil, getErr
+	//Mutually exclude read,write operations on the database
+	mx.Lock()
+	storedEvent, storingErr := StoreEvent(c, &event)
+	mx.Unlock()
+	if storingErr != nil {
+		return nil, storingErr
 	}
-	if currentEvent != nil {
-		event.UID = currentEvent.UID
-		//Check if the event is basically the same
-		//If it is, then dont bother upserting it.
-		if event.Equal(*currentEvent) {
-			return currentEvent, nil
-		}
-	}
-	upsertErr := UpsertEventRetryable(c, event, false)
-	if upsertErr != nil {
-		if upsertErr == y.ErrAborted { //If it aborted due to race condition
-			//lock
-			mx.Lock()
-			upsertErrRetried := UpsertEventRetryable(c, event, true)
-			mx.Unlock()
-			//unlock
-			if upsertErrRetried != nil {
-				return nil, upsertErrRetried
-			}
-			//GOOD EXIT
-			return db.GetEvent(c, event)
-		}
-		return nil, upsertErr
+	if storedEvent != nil {
+		return storedEvent, nil
 	}
 
 	//Exits here if it created a new event, and has then retrieved that event from the database
 	return db.GetEvent(c, event)
 }
 
-// UpsertEventRetryable provides a method to recursively keep retrying to upsert a specific event
-// This is intended to be used within a mutual exclusion lock to prevent race conditions
-func UpsertEventRetryable(c *dgo.Dgraph, e db.Event, retry bool) error {
-	_, er1 := db.UpsertEvent(c, e)
-	if er1 != nil {
-		if er1 == y.ErrAborted && retry {
-			return UpsertEventRetryable(c, e, retry)
-		}
-		return er1
+//StoreEvent handles the read and write operations
+//Returns the event if it already exists, or nil, with a nil error if it has just been created
+func StoreEvent(c *dgo.Dgraph, e *db.Event) (*db.Event, error) {
+	currentEvent, getErr := db.GetEvent(c, *e)
+	if getErr != nil {
+		return nil, getErr
 	}
-	return nil
+	if currentEvent != nil {
+		e.UID = currentEvent.UID
+		//Check if the event is basically the same
+		//If it is, then dont bother upserting it.
+		if e.Equal(*currentEvent) {
+			return currentEvent, nil
+		}
+	}
+	_, upsertErr := db.UpsertEvent(c, *e)
+	if upsertErr != nil {
+		return nil, upsertErr
+	}
+	return nil, nil
 }
 
-func generateEventID(fid *FilesIds, currentID string) (string, error) {
-	id := fid.id
-	r1, err1 := regexp.Compile(strconv.Itoa(id) + "_")
+func generateEventID(currentID string) (string, error) {
+	r1, err1 := regexp.Compile(`\A\d{6}_`)
 	if err1 != nil {
 		return "", err1
 	}

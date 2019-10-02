@@ -94,7 +94,7 @@ func (l Location) Equal(l2 Location) bool {
 // Schema is the database schema
 var Schema = `
 event.id: string @index(exact) .
-event.title: string @index(fulltext) .
+event.title: string @index(fulltext, term) .
 event.start_date: datetime @index(day) .
 event.end_date: datetime @index(day).
 event.organiser: [uid] @reverse .

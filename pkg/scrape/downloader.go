@@ -112,7 +112,7 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds) {
 }
 
 // Sends the file to be scraped, and once that is complete, it deletes the cached file
-func processFile(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) {
+func processFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) {
 	err := ParseCal(c, fid, mx)
 	if err != nil {
 		log.Fatal(err)
@@ -126,7 +126,7 @@ func processFile(c *dgo.Dgraph, fid *FilesIds, mx *sync.Mutex) {
 func processAll(c *dgo.Dgraph, chFiles chan FilesIds) {
 	var eventMX = &sync.Mutex{}
 	for filename := range chFiles {
-		go processFile(c, &filename, eventMX)
+		go processFile(c, filename, eventMX)
 	}
 	log.Println("-------processAll completed ------")
 }
@@ -134,9 +134,9 @@ func processAll(c *dgo.Dgraph, chFiles chan FilesIds) {
 // FuckIt Runs the main scraping program
 func FuckIt(config *InitialConfig, c *dgo.Dgraph) {
 	//Channels
-	chIds := make(chan int) //Channel of ids to be downloaded
+	chIds := make(chan int, 1000) //Channel of ids to be downloaded
 
-	chFiles := make(chan FilesIds) //Channel of filenames to be scraped
+	chFiles := make(chan FilesIds, 100) //Channel of filenames to be scraped
 
 	go GetIds(config, chIds) //Populate the URLs to be downloaded
 
