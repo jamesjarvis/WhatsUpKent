@@ -84,9 +84,14 @@ func ScrapeModules(c *dgo.Dgraph) error {
 		}
 
 		for _, m := range *apiModules {
+			subject, subjectErr := getSubjectFromModuleCode(m.SDSCode)
+			if subjectErr != nil {
+				return subjectErr
+			}
 			tempMod := db.Module{
-				Code: m.SDSCode,
-				Name: m.Title,
+				Code:    m.SDSCode,
+				Name:    m.Title,
+				Subject: subject,
 			}
 
 			checkExist, existErr := db.GetModuleFromSDSCode(c, m.SDSCode)

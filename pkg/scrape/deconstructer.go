@@ -125,7 +125,7 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 
 	//Modules connecting
 	modules := make([]db.Module, 0)
-	sdsCode, sdsErr := getModuleCodeFromEvent(scrapedEvent)
+	sdsCode, sdsErr := getModuleCodeFromEvent(scrapedEvent.Summary)
 	if sdsErr != nil {
 		return nil, sdsErr
 	}
@@ -198,11 +198,41 @@ func generateEventID(currentID string) (string, error) {
 	return temp2, nil
 }
 
-func getModuleCodeFromEvent(e *gocal.Event) (string, error) {
+type ModuleMetaInfo struct {
+	SDSCode string
+	Subject string
+}
+
+func getModuleInfoFromEvent(e *gocal.Event) (*ModuleMetaInfo, error) {
+	sds, sdsErr := getModuleCodeFromEvent(e.Summary)
+	if sdsErr != nil {
+		return nil, sdsErr
+	}
+	subject, subjectErr := getSubjectFromModuleCode(sds)
+	if subjectErr != nil {
+		return nil, subjectErr
+	}
+	return &ModuleMetaInfo{
+		SDSCode: sds,
+		Subject: subject,
+	}, nil
+}
+
+func getModuleCodeFromEvent(s string) (string, error) {
 	r, err := regexp.Compile(`[A-Z]{1,4}\d{1,4}`)
 	if err != nil {
 		return "", err
 	}
-	temp := r.FindString(e.Summary)
+	temp := r.FindString(s)
 	return temp, nil
+}
+
+func getSubjectFromModuleCode(s string) (string, error) {
+	r, err := regexp.Compile(`[A-Z]*`)
+	if err != nil {
+		return "", err
+	}
+	temp := r.FindString(s)
+	subject := SubjectsMap[temp]
+	return subject, nil
 }
