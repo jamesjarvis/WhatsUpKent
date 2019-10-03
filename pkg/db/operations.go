@@ -403,3 +403,35 @@ func CountNodesWithFieldUnsafe(c *dgo.Dgraph, f string) (*int, error) {
 
 	return &r.NodeCount[0].NodeCount, nil
 }
+
+//GetOldestScrape retrieves the oldest scrape from the database
+func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
+	txn := c.NewReadOnlyTxn()
+	ctx := context.Background()
+
+	q := `{
+		oldestScrape(func: has(scrape.id), orderasc: scrape.last_scraped, first: 1) {
+			scrape.id
+			scrape.last_scraped
+		}
+	}`
+
+	resp, err := txn.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	type Root struct {
+		OldestScrape []Scrape `json:"oldestScrape"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+	if len(r.OldestScrape) == 0 {
+		return nil, nil
+	}
+
+	return &r.OldestScrape[0], nil
+}

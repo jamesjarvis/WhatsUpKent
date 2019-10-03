@@ -71,8 +71,8 @@ func downloadAndMarshalModules() (*[]ModuleInfo, error) {
 	return &modules, nil
 }
 
-//ScrapeModules scrapes the modules from kent api if they dont already exist
-func ScrapeModules(c *dgo.Dgraph) error {
+//Modules scrapes the modules from kent api if they dont already exist
+func Modules(c *dgo.Dgraph) error {
 	n, countErr := db.CountNodesWithFieldUnsafe(c, "module.code")
 	if countErr != nil {
 		return countErr
