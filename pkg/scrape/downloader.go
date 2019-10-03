@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/dgraph-io/dgo/v2"
 )
@@ -20,8 +21,9 @@ type FilesIds struct {
 
 //InitialConfig is the configuration passed into the scraper
 type InitialConfig struct {
-	StartRange int
-	EndRange   int
+	StartRange   int
+	EndRange     int
+	SlowInterval time.Duration
 }
 
 // The point of this section is to concurrently download ical files from a specified ID, and cache them on the system.
@@ -122,14 +124,14 @@ func processAll(c *dgo.Dgraph, chFiles chan FilesIds) {
 	var eventMX = &sync.Mutex{}
 	for filename := range chFiles {
 		processWG.Add(1)
-		go processFile(c, filename, eventMX, &processWG)
+		go ProcessFile(c, filename, eventMX, &processWG)
 	}
 	processWG.Wait()
 	log.Println("------- processAll completed ------")
 }
 
-// processFile sends the file to be scraped, and once that is complete, it deletes the cached file
-func processFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, wg *sync.WaitGroup) {
+// ProcessFile sends the file to be scraped, and once that is complete, it deletes the cached file
+func ProcessFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, wg *sync.WaitGroup) {
 	err := ParseCal(c, fid, mx)
 	if err != nil {
 		log.Fatal(err)

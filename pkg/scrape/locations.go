@@ -79,8 +79,8 @@ func yesNoToBool(s string) bool {
 	return s == "Yes" || s == "yes"
 }
 
-//ScrapeLocations scrapes the locations from kent api if they dont already exist
-func ScrapeLocations(c *dgo.Dgraph) error {
+//Locations scrapes the locations from kent api if they dont already exist
+func Locations(c *dgo.Dgraph) error {
 	n, countErr := db.CountNodesWithFieldUnsafe(c, "location.id")
 	if countErr != nil {
 		return countErr

@@ -75,7 +75,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 		events = append(events, tempEvent)
 	}
 
-	log.Printf("Finally scraped %d, with %d events", fid.id, len(events))
+	log.Printf("Scraped %d, with %d events", fid.id, len(events))
 
 	if currentScrape != nil {
 		scrapeEvent.UID = currentScrape.UID
