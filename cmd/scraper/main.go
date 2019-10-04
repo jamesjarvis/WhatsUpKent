@@ -47,5 +47,8 @@ func main() {
 	log.Println("------------- Event scraping complete -------------")
 
 	// Now the main scrape is complete, enter a "slow mode"
-	scrape.Continuous(&config, client)
+	continuousErr := scrape.Continuous(&config, client)
+	if continuousErr != nil {
+		log.Fatal(continuousErr)
+	}
 }

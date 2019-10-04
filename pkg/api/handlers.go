@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 	mux "github.com/julienschmidt/httprouter"
 )
 
+//Query performs a read only query
 func Query(w http.ResponseWriter, r *http.Request, _ mux.Params) {
 
 	// Read request body and close it
@@ -17,11 +17,10 @@ func Query(w http.ResponseWriter, r *http.Request, _ mux.Params) {
 	HandleError(err)
 	defer r.Body.Close()
 
-	//Get client connection
-	client := db.NewClient()
-	result, queryErr := db.ReadOnly(client, string(body))
-	HandleError(queryErr)
+	//Retrieve query result
+	result, err := PerformCachedQuery(string(body))
+	HandleError(err)
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, string(result))
+	fmt.Fprintf(w, *result)
 }
