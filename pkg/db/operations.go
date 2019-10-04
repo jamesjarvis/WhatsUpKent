@@ -435,3 +435,17 @@ func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
 
 	return &r.OldestScrape[0], nil
 }
+
+//ReadOnly is a read only transaction on the database - this is assumed to be ok
+func ReadOnly(c *dgo.Dgraph, q string) ([]byte, error) {
+	txn := c.NewReadOnlyTxn()
+	txn.BestEffort()
+	ctx := context.Background()
+
+	resp, err := txn.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Json, nil
+}

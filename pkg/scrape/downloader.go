@@ -49,7 +49,16 @@ func FormatURL(id int) string {
 
 // FormatFilename formats the integer id into the filename path
 func FormatFilename(id int) string {
-	return filepath.Join("ical_cache", fmt.Sprintf("%d.ics", id))
+	return filepath.Join(getIcalDir(), fmt.Sprintf("%d.ics", id))
+}
+
+func getIcalDir() string {
+	ex, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
+	exPath := filepath.Join(filepath.Dir(ex), "ical_cache")
+	return exPath
 }
 
 // DownloadFile makes the request and saves the result to a file
@@ -86,7 +95,7 @@ func DownloadFile(fid FilesIds) error {
 // downloadAll downloads all of the urls in the channel
 func downloadAll(chIds chan int, chFiles chan FilesIds) {
 	//Set up cache directory
-	os.Mkdir("ical_cache", os.FileMode(0755))
+	os.Mkdir(getIcalDir(), os.FileMode(0755))
 
 	var downloadWG sync.WaitGroup
 

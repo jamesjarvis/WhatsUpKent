@@ -61,6 +61,21 @@ services:
       DGRAPH_URL: server:9080
     networks: # Networks to join (Services on the same network can communicate with each other using their name)
       - backend
+  api:
+    # Configuration for building the docker image for the service
+    build:
+      context: . # Use an image built from the specified dockerfile in the current directory.
+      dockerfile: Dockerfile-api
+    restart: on-failure
+    ports:
+      - 4000:4000
+    depends_on:
+      - zero
+      - server
+    environment: # Pass environment variables to the service
+      DGRAPH_URL: server:9080
+    networks: # Networks to join (Services on the same network can communicate with each other using their name)
+      - backend
 
 volumes:
   dgraph:
