@@ -24,6 +24,7 @@ type InitialConfig struct {
 	StartRange   int
 	EndRange     int
 	SlowInterval time.Duration
+	MaxAge       time.Duration
 }
 
 // The point of this section is to concurrently download ical files from a specified ID, and cache them on the system.
@@ -92,11 +93,14 @@ func DownloadFile(fid FilesIds) error {
 	return err
 }
 
-// downloadAll downloads all of the urls in the channel
-func downloadAll(chIds chan int, chFiles chan FilesIds) {
+//CreateDownloadDir does what it says on the tin
+func CreateDownloadDir() {
 	//Set up cache directory
 	os.Mkdir(getIcalDir(), os.FileMode(0755))
+}
 
+// downloadAll downloads all of the urls in the channel
+func downloadAll(chIds chan int, chFiles chan FilesIds) {
 	var downloadWG sync.WaitGroup
 
 	numberOfWorkers := 1
