@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,6 +9,11 @@ import (
 
 	mux "github.com/julienschmidt/httprouter"
 )
+
+//ErrorJSON is the response sent back in case of an error
+type ErrorJSON struct {
+	Status, Error string
+}
 
 //Query performs a read only query
 func Query(w http.ResponseWriter, r *http.Request, _ mux.Params) {
@@ -19,8 +25,14 @@ func Query(w http.ResponseWriter, r *http.Request, _ mux.Params) {
 
 	//Retrieve query result
 	result, err := PerformCachedQuery(string(body))
-	HandleError(err)
-
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, *result)
+	if err != nil {
+		w.WriteHeader(500)
+		errorJSON := ErrorJSON{Status: "Query Failed", Error: "Query not correctly formatted."}
+		marshalled, marshallErr := json.Marshal(errorJSON)
+		HandleError(marshallErr)
+		fmt.Fprintf(w, string(marshalled))
+	} else {
+		fmt.Fprintf(w, *result)
+	}
 }
