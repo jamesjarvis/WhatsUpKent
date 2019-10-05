@@ -11,7 +11,11 @@ func HandleError(err error) {
 	}
 }
 
-func Start() {
+var Url = "localhost:9080"
+
+func Start(url string) {
+	Url = url
+
 	router := NewRouter()
 
 	log.Println("Starting api service on port 4000 .......")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
@@ -9,22 +10,28 @@ import (
 )
 
 func main() {
+	// Setup Scraper
+	scrape.CreateDownloadDir()
+	url := os.Getenv("DGRAPH_URL")
+	if url == "" {
+		url = "localhost:9080"
+	}
+
+	config := scrape.InitialConfig{
+		Url:          url,
+		StartRange:   110000,
+		EndRange:     150000,
+		SlowInterval: time.Second * 45,
+		MaxAge:       time.Hour * 24 * 7,
+	}
+
 	// Setup database connection
-	client := db.NewClient()
+	client := db.NewClient(url)
 	err := db.Setup(client)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Print("Schema successfully updated")
-
-	// Setup Scraper
-	scrape.CreateDownloadDir()
-	config := scrape.InitialConfig{
-		StartRange:   130000,
-		EndRange:     134000,
-		SlowInterval: time.Second * 45,
-		MaxAge:       time.Hour * 24 * 7,
-	}
 
 	s, errOld := db.GetOldestScrape(client)
 	if errOld != nil {

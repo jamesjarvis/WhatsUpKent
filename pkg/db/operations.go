@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
-	"github.com/dgraph-io/dgo/v2/y"
 )
 
 // This file should contain methods for interacting with the data easily.
@@ -250,8 +250,8 @@ func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
 	mu.SetJson = pb
 	assigned, upsertErr := c.NewTxn().Mutate(ctx, mu)
 	if upsertErr != nil {
-		if upsertErr == y.ErrAborted {
-		}
+		// if upsertErr == y.ErrAborted {
+		// }
 		return nil, upsertErr
 	}
 	return assigned, nil
@@ -408,6 +408,18 @@ func CountNodesWithFieldUnsafe(c *dgo.Dgraph, f string) (*int, error) {
 func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
 	txn := c.NewReadOnlyTxn()
 	ctx := context.Background()
+
+	//First, check if there even is anything in the database
+	tot, totErr := CountNodesWithFieldUnsafe(c, "scrape.id")
+	if totErr != nil {
+		return nil, totErr
+	}
+	if *tot == 0 {
+		nilTime := time.Unix(0, 0)
+		return &Scrape{
+			LastScraped: &nilTime,
+		}, nil
+	}
 
 	q := `{
 		oldestScrape(func: has(scrape.id), orderasc: scrape.last_scraped, first: 1) {

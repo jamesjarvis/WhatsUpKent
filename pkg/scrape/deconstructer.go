@@ -27,10 +27,10 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
-	// start, end := time.Now(), time.Now().Add(12*30*24*time.Hour)
+	start, end := time.Now().Add(time.Hour*24*30*-1), time.Now().Add(time.Hour*24*30*12)
 
 	parser := gocal.NewParser(f)
-	// c.Start, c.End = &start, &end
+	parser.Start, parser.End = &start, &end
 	parseErr := parser.Parse()
 	if parseErr != nil {
 		return parseErr

@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -12,13 +11,13 @@ import (
 )
 
 // NewClient sets up a gRPC and returns a new dgraph connection
-func NewClient() *dgo.Dgraph {
+func NewClient(url string) *dgo.Dgraph {
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
 	dialOpts := append([]grpc.DialOption{},
 		grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
-	d, err := grpc.Dial(os.Getenv("DGRAPH_URL"), dialOpts...)
+	d, err := grpc.Dial(url, dialOpts...)
 
 	if err != nil {
 		log.Fatal(err)

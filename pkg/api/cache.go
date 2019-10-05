@@ -70,7 +70,7 @@ func PerformCachedQuery(query string) (*string, error) {
 		//If its not in the cache
 		if err == badger.ErrKeyNotFound {
 			//Get client connection
-			client := db.NewClient()
+			client := db.NewClient(Url)
 			result, queryErr := db.ReadOnly(client, query)
 			if queryErr != nil {
 				return nil, queryErr

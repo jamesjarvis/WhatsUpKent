@@ -21,6 +21,7 @@ type FilesIds struct {
 
 //InitialConfig is the configuration passed into the scraper
 type InitialConfig struct {
+	Url          string
 	StartRange   int
 	EndRange     int
 	SlowInterval time.Duration
