@@ -11,5 +11,5 @@ func main() {
 	if url == "" {
 		url = "localhost:9080"
 	}
-	api.Start(url)
+	api.Starter(url)
 }

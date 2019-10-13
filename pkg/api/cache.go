@@ -69,24 +69,35 @@ func PerformCachedQuery(query string) (*string, error) {
 	if err != nil {
 		//If its not in the cache
 		if err == badger.ErrKeyNotFound {
-			//Get client connection
-			client := db.NewClient(Url)
-			result, queryErr := db.ReadOnly(client, query)
+			res, queryErr := PerformQuery(query)
 			if queryErr != nil {
 				return nil, queryErr
 			}
-			res := string(result)
 
 			//Save to cache in a goroutine
-			go SetCache(query, res)
+			go SetCache(query, *res)
 
 			//Return result
-			return &res, queryErr
+			return res, queryErr
 		}
 		return nil, err
 	}
 	//If it is in the cache
 	return answer, nil
+}
+
+//PerformQuery is the main db accessor, without caching abilities.
+func PerformQuery(query string) (*string, error) {
+	//Get client connection
+	client := db.NewClient(URL)
+	result, queryErr := db.ReadOnly(client, query)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	res := string(result)
+
+	//Return result
+	return &res, queryErr
 }
 
 //Hash generates a uint32 hash of a string

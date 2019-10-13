@@ -109,7 +109,7 @@ func (m Module) Equal(m2 Module) bool {
 
 // Schema is the database schema
 var Schema = `
-event.id: string @index(exact) .
+event.id: string @index(hash) .
 event.title: string @index(fulltext, term) .
 event.start_date: datetime @index(day) .
 event.end_date: datetime @index(day).
@@ -121,7 +121,7 @@ location.id: string @index(exact) .
 
 module.code: string @index(exact) .
 module.name: string @index(fulltext) .
-module.subject: string @index(fulltext) .
+module.subject: string @index(fulltext, exact) .
 
 scrape.found_event: [uid] @reverse .
 scrape.id: int @index(int) .
