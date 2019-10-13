@@ -96,6 +96,7 @@ func Locations(c *dgo.Dgraph) error {
 				ID:             loc.ID,
 				Name:           loc.UFName,
 				DisabledAccess: yesNoToBool(loc.DisabledAccess),
+				DType:          []string{"Location"},
 			}
 
 			_, er1 := db.UpsertLocation(c, tempLoc)

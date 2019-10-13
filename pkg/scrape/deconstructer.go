@@ -41,6 +41,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 	scrapeEvent := db.Scrape{
 		ID:          fid.id,
 		LastScraped: &currentTime,
+		DType:       []string{"Scrape"},
 	}
 
 	currentScrape, err := db.GetScrape(c, scrapeEvent)
@@ -145,6 +146,7 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 		EndDate:      scrapedEvent.End,
 		Location:     locations,
 		PartOfModule: modules,
+		DType:        []string{"Event"},
 	}
 
 	//Mutually exclude read,write operations on the database

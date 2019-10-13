@@ -123,6 +123,27 @@ func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (*api.Response, error) {
 	return assigned, nil
 }
 
+//RemoveScrape deletes the specified scrape from the database.
+func RemoveScrape(c *dgo.Dgraph, scrape Scrape) error {
+	ctx := context.Background()
+	d := map[string]string{"uid": scrape.UID}
+	pb, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	mu := &api.Mutation{
+		CommitNow:  true,
+		DeleteJson: pb,
+	}
+
+	_, err = c.NewTxn().Mutate(ctx, mu)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetEvent should recieve a dgraph client and an event struct,
 // and return the official event struct from the database, complete with Uid for referencing
 // if no such event exists, then it returns an error
@@ -423,6 +444,7 @@ func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
 
 	q := `{
 		oldestScrape(func: has(scrape.id), orderasc: scrape.last_scraped, first: 1) {
+			uid
 			scrape.id
 			scrape.last_scraped
 		}
