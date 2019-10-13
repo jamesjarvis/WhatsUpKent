@@ -92,6 +92,7 @@ func Modules(c *dgo.Dgraph) error {
 				Code:    m.SDSCode,
 				Name:    m.Title,
 				Subject: subject,
+				DType:   []string{"Module"},
 			}
 
 			checkExist, existErr := db.GetModuleFromSDSCode(c, m.SDSCode)

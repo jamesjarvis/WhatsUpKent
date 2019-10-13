@@ -31,14 +31,22 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 		err := DownloadFile(fid)
 
 		if err != nil {
-			return err
+			if err != ErrInvalidID {
+				return err
+			}
+			//Remove the dead scrape
+			log.Printf("Scrape %d seems dead, removing from database...", fid.id)
+			removeScrapeErr := db.RemoveScrape(c, *oldestScrape)
+			if removeScrapeErr != nil {
+				return removeScrapeErr
+			}
+		} else {
+			//Scrape file
+			processWG.Add(1)
+			go ProcessFile(c, fid, eventMX, &processWG)
+			duration := time.Since(*oldestScrape.LastScraped)
+			log.Printf("Rescraping %d, after %s minutes", fid.id, duration)
 		}
-
-		//Scrape file
-		processWG.Add(1)
-		go ProcessFile(c, fid, eventMX, &processWG)
-		duration := time.Since(*oldestScrape.LastScraped)
-		log.Printf("Rescraping %d, after %s minutes", fid.id, duration)
 	}
 	processWG.Wait()
 	return nil

@@ -17,8 +17,8 @@ func Starter(url string) {
 	URL = url
 
 	memcached, err := memory.NewAdapter(
-		memory.AdapterWithAlgorithm(memory.MFU),
-		memory.AdapterWithCapacity(10000000),
+		memory.AdapterWithAlgorithm(memory.LRU),
+		memory.AdapterWithCapacity(1000),
 	)
 	HandleError(err)
 
