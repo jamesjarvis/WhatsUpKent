@@ -138,10 +138,15 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 		modules = append(modules, *mod)
 	}
 
+	description, err := removeUselessInfoFromDescription(scrapedEvent.Description)
+	if err != nil {
+		return nil, err
+	}
+
 	event := db.Event{
 		ID:           eventID, //Sort this out
 		Title:        scrapedEvent.Summary,
-		Description:  scrapedEvent.Description,
+		Description:  description,
 		StartDate:    scrapedEvent.Start,
 		EndDate:      scrapedEvent.End,
 		Location:     locations,
@@ -198,6 +203,14 @@ func generateEventID(currentID string) (string, error) {
 	temp1 := r1.ReplaceAllLiteralString(currentID, "")
 	temp2 := r2.ReplaceAllLiteralString(temp1, "")
 	return temp2, nil
+}
+
+func removeUselessInfoFromDescription(currentDescription string) (string, error) {
+	r1, err := regexp.Compile(`\\n\\nDetails of this service http:\/\/www\.kent\.ac\.uk\/timetabling\/icalendar`)
+	if err != nil {
+		return "", err
+	}
+	return r1.ReplaceAllLiteralString(currentDescription, ""), nil
 }
 
 type ModuleMetaInfo struct {
