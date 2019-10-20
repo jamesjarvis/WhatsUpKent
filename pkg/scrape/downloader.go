@@ -128,7 +128,6 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds, wg *sync.Wait
 			log.Println(err)
 		}
 	}
-	// log.Printf("Exiting download worker %d", worknumber)
 	wg.Done()
 }
 
@@ -136,32 +135,42 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds, wg *sync.Wait
 func processAll(c *dgo.Dgraph, chFiles chan FilesIds) {
 	var processWG sync.WaitGroup
 	var eventMX = &sync.Mutex{}
-	for filename := range chFiles {
+
+	numberOfWorkers := 3
+	for i := 0; i < numberOfWorkers; i++ {
 		processWG.Add(1)
-		go ProcessFile(c, filename, eventMX, &processWG)
+		go processWorker(c, chFiles, eventMX, &processWG)
 	}
 	processWG.Wait()
 	log.Println("------- processAll completed ------")
 }
 
-// ProcessFile sends the file to be scraped, and once that is complete, it deletes the cached file
-func ProcessFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, wg *sync.WaitGroup) {
-	err := ParseCal(c, fid, mx)
-	if err != nil {
-		log.Fatal(err)
+func processWorker(c *dgo.Dgraph, chFiles chan FilesIds, mx *sync.Mutex, wg *sync.WaitGroup) {
+	for filename := range chFiles {
+		err := ProcessFile(c, filename, mx)
+
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
+	wg.Done()
+}
+
+// ProcessFile sends the file to be scraped, and once that is complete, it deletes the cached file
+func ProcessFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
+	err := ParseCal(c, fid, mx)
 
 	// Remove the cache
 	os.Remove(fid.filename)
-	wg.Done()
+	return err
 }
 
 // FuckIt Runs the main scraping program
 func FuckIt(config *InitialConfig, c *dgo.Dgraph) {
 	//Channels
-	chIds := make(chan int, 1000) //Channel of ids to be downloaded
+	chIds := make(chan int, 100) //Channel of ids to be downloaded
 
-	chFiles := make(chan FilesIds, 100) //Channel of filenames to be scraped
+	chFiles := make(chan FilesIds, 50) //Channel of filenames to be scraped
 
 	go GetIds(config, chIds) //Populate the URLs to be downloaded
 

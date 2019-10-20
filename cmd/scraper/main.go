@@ -21,7 +21,7 @@ func main() {
 		Url:          url,
 		StartRange:   110000,
 		EndRange:     150000,
-		SlowInterval: time.Second * 45,
+		SlowInterval: time.Second * 30,
 		MaxAge:       time.Hour * 24 * 7,
 	}
 
