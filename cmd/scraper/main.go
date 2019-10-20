@@ -18,11 +18,14 @@ func main() {
 	}
 
 	config := scrape.InitialConfig{
-		Url:          url,
-		StartRange:   110000,
-		EndRange:     150000,
-		SlowInterval: time.Second * 30,
-		MaxAge:       time.Hour * 24 * 7,
+		Url:              url,
+		StartRange:       110000,
+		EndRange:         150000,
+		SlowInterval:     time.Second * 30,
+		MaxAge:           time.Hour * 24 * 7,
+		DownloadPool:     1,
+		ProcessPool:      3,
+		EventProcessPool: 5,
 	}
 
 	// Setup database connection
@@ -58,6 +61,9 @@ func main() {
 		scrape.FuckIt(&config, client)
 		log.Println("------------- Event scraping complete -------------")
 	}
+
+	//Increase the number of processes available to scrape
+	config.EventProcessPool = 10
 
 	// Now the main scrape is complete, enter a "slow mode"
 	continuousErr := scrape.Continuous(&config, client)

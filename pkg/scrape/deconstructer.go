@@ -23,7 +23,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
+func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -54,7 +54,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 	resultsChan := make(chan db.Event, 10000)
 	var wg sync.WaitGroup
 
-	numberOfWorkers := 5
+	numberOfWorkers := config.EventProcessPool
 
 	for i := 0; i <= numberOfWorkers; i++ {
 		wg.Add(1)

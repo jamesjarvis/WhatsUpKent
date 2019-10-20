@@ -41,7 +41,7 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 			}
 		} else {
 			//Scrape file
-			err = ProcessFile(c, fid, eventMX)
+			err = ProcessFile(c, fid, eventMX, config)
 			duration := time.Since(*oldestScrape.LastScraped)
 			log.Printf("Rescraped %d, after %s minutes", fid.id, duration)
 		}
