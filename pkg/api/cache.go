@@ -11,17 +11,9 @@ import (
 
 //GetCache attempts to retrieve a cached version of the request
 func GetCache(query string) (*string, error) {
-	// Open the Badger database located in the /tmp/badger directory.
-	// It will be created if it doesn't exist.
-	db, badgErr := badger.Open(badger.DefaultOptions("/tmp/badger"))
-	if badgErr != nil {
-		return nil, badgErr
-	}
-	defer db.Close()
-
 	var valCopy []byte
 	// var err error
-	err := db.View(func(txn *badger.Txn) error {
+	err := CacheDB.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(query))
 		if err != nil {
 			return err
@@ -45,15 +37,7 @@ func GetCache(query string) (*string, error) {
 
 //SetCache stores the query and answer in the database
 func SetCache(query string, answer string) error {
-	// Open the Badger database located in the /tmp/badger directory.
-	// It will be created if it doesn't exist.
-	db, badgErr := badger.Open(badger.DefaultOptions("/tmp/badger"))
-	if badgErr != nil {
-		return badgErr
-	}
-	defer db.Close()
-
-	err := db.Update(func(txn *badger.Txn) error {
+	err := CacheDB.Update(func(txn *badger.Txn) error {
 		e := badger.NewEntry([]byte(query), []byte(answer)).WithTTL(time.Hour)
 		err := txn.SetEntry(e)
 		return err
@@ -69,7 +53,9 @@ func PerformCachedQuery(query string) (*string, error) {
 	if err != nil {
 		//If its not in the cache
 		if err == badger.ErrKeyNotFound {
+			// Lock.Lock() //The lock can be used if deemed necessary. Doesn't seem to be an issue for now
 			res, queryErr := PerformQuery(query)
+			// Lock.Unlock()
 			if queryErr != nil {
 				return nil, queryErr
 			}
@@ -89,15 +75,14 @@ func PerformCachedQuery(query string) (*string, error) {
 //PerformQuery is the main db accessor, without caching abilities.
 func PerformQuery(query string) (*string, error) {
 	//Get client connection
-	client := db.NewClient(URL)
-	result, queryErr := db.ReadOnly(client, query)
-	if queryErr != nil {
-		return nil, queryErr
+	result, err := db.ReadOnly(Client, query)
+	if err != nil {
+		return nil, err
 	}
 	res := string(result)
 
 	//Return result
-	return &res, queryErr
+	return &res, err
 }
 
 //Hash generates a uint32 hash of a string
