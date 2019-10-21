@@ -76,9 +76,16 @@ services:
       DGRAPH_URL: server:9080
     networks: # Networks to join (Services on the same network can communicate with each other using their name)
       - backend
+    volumes:
+      - type: volume
+        source: cache
+        target: /cache
+        volume:
+          nocopy: true
 
 volumes:
   dgraph:
+  cache:
 
 networks:
   backend:

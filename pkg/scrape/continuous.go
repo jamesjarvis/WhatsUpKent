@@ -11,7 +11,6 @@ import (
 
 //Continuous is the continous scraper
 func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
-	var processWG sync.WaitGroup
 	var eventMX = &sync.Mutex{}
 
 	for {
@@ -42,12 +41,10 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 			}
 		} else {
 			//Scrape file
-			processWG.Add(1)
-			go ProcessFile(c, fid, eventMX, &processWG)
+			err = ProcessFile(c, fid, eventMX, config)
 			duration := time.Since(*oldestScrape.LastScraped)
-			log.Printf("Rescraping %d, after %s minutes", fid.id, duration)
+			log.Printf("Rescraped %d, after %s minutes", fid.id, duration)
 		}
 	}
-	processWG.Wait()
 	return nil
 }

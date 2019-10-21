@@ -23,7 +23,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
+func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -31,9 +31,9 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 
 	parser := gocal.NewParser(f)
 	parser.Start, parser.End = &start, &end
-	parseErr := parser.Parse()
-	if parseErr != nil {
-		return parseErr
+	err := parser.Parse()
+	if err != nil {
+		return err
 	}
 
 	currentTime := time.Now()
@@ -54,7 +54,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 	resultsChan := make(chan db.Event, 10000)
 	var wg sync.WaitGroup
 
-	numberOfWorkers := 20
+	numberOfWorkers := config.EventProcessPool
 
 	for i := 0; i <= numberOfWorkers; i++ {
 		wg.Add(1)
@@ -76,16 +76,16 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex) error {
 		events = append(events, tempEvent)
 	}
 
-	log.Printf("Scraped %d, with %d events", fid.id, len(events))
-
 	if currentScrape != nil {
 		scrapeEvent.UID = currentScrape.UID
 	}
 	scrapeEvent.FoundEvent = events
-	_, upsertErr := db.UpsertScrape(c, scrapeEvent)
-	if upsertErr != nil {
-		return upsertErr
+	_, err = db.UpsertScrape(c, scrapeEvent)
+	if err != nil {
+		return err
 	}
+
+	log.Printf("Scraped %d, with %d events", fid.id, len(events))
 
 	return nil
 }
@@ -138,10 +138,15 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 		modules = append(modules, *mod)
 	}
 
+	description, err := removeUselessInfoFromDescription(scrapedEvent.Description)
+	if err != nil {
+		return nil, err
+	}
+
 	event := db.Event{
 		ID:           eventID, //Sort this out
 		Title:        scrapedEvent.Summary,
-		Description:  scrapedEvent.Description,
+		Description:  description,
 		StartDate:    scrapedEvent.Start,
 		EndDate:      scrapedEvent.End,
 		Location:     locations,
@@ -198,6 +203,14 @@ func generateEventID(currentID string) (string, error) {
 	temp1 := r1.ReplaceAllLiteralString(currentID, "")
 	temp2 := r2.ReplaceAllLiteralString(temp1, "")
 	return temp2, nil
+}
+
+func removeUselessInfoFromDescription(currentDescription string) (string, error) {
+	r1, err := regexp.Compile(`\\n\\nDetails of this service http:\/\/www\.kent\.ac\.uk\/timetabling\/icalendar`)
+	if err != nil {
+		return "", err
+	}
+	return r1.ReplaceAllLiteralString(currentDescription, ""), nil
 }
 
 type ModuleMetaInfo struct {

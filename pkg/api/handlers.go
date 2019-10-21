@@ -26,7 +26,10 @@ func Query(w http.ResponseWriter, r *http.Request) {
 
 	// Read request body and close it
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-	HandleError(err)
+	// HandleError(err)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+	}
 	defer r.Body.Close()
 
 	//Retrieve query result
@@ -38,7 +41,6 @@ func Query(w http.ResponseWriter, r *http.Request) {
 		marshalled, marshallErr := json.Marshal(errorJSON)
 		HandleError(marshallErr)
 		fmt.Fprintf(w, string(marshalled))
-		HandleError(err)
 	} else {
 		fmt.Fprintf(w, *result)
 	}
