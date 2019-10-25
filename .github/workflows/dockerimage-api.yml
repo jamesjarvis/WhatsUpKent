@@ -8,7 +8,7 @@ jobs:
     - name: Publish API to Registry
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
-        name: jamesjarvis/whatsupkent/api
+        name: jamesjarvis/whatsupkent/whatsupkent-api
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         registry: docker.pkg.github.com
