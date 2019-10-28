@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsupkent-scraper
+spec:
+  selector:
+    matchLabels:
+      app: whatsupkent-scraper
+  replicas: 1
+  template:
+    metadata:
+      name: whatsupkent-scraper
+      labels:
+        app: whatsupkent-scraper
+    spec:
+      containers:
+        - name: whatsupkent-scraper
+          image: jjhaslanded/whatsupkent-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+              name: api
+              protocol: TCP
+          env:
+            - name: DGRAPH_URL
+              value: dgraph-public.default.svc.cluster.local:9080
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "400m"
+      imagePullSecrets:
+      - name: dockerhub-secret
+

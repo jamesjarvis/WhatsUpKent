@@ -1,0 +1,52 @@
+# on:
+#   push:
+#     branches:
+#       - master
+
+on: [push] # Change this as soon as it has been tested
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: Azure/docker-login@v1
+        with:
+          login-server: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }} -f Dockerfile-api .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      - uses: Azure/k8s-create-secret@v1
+        with:
+          container-registry-url: docker.io
+          container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          secret-name: dockerhub-secret
+
+      - uses: actions/checkout@master
+
+      - name: deploy to cluster
+        uses: steebchen/kubectl@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        with:
+          args: rollout restart deployment whatsupkent-api
+
+      - name: verify deployment
+        uses: steebchen/kubectl@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        with:
+          args: '"rollout status deployment whatsupkent-api"'
