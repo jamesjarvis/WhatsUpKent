@@ -13,7 +13,7 @@ jobs:
 
       - uses: Azure/docker-login@v1
         with:
-          login-server: docker.io
+          login-server: index.docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
@@ -30,7 +30,7 @@ jobs:
 
       - uses: Azure/k8s-create-secret@v1
         with:
-          container-registry-url: docker.io
+          container-registry-url: index.docker.io
           container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
           container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
           secret-name: dockerhub-secret
