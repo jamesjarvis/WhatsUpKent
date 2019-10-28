@@ -1,10 +1,8 @@
 name: Build and deploy api
-# on:
-#   push:
-#     branches:
-#       - master
-
-on: [push] # Change this as soon as it has been tested
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
