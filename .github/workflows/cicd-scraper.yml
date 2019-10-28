@@ -1,0 +1,48 @@
+name: Build and deploy scraper
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: Azure/docker-login@v1
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }} -f Dockerfile-scraper .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }}
+
+      # - uses: Azure/k8s-set-context@v1
+      #   with:
+      #     kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      # - name: Set imagePullSecret
+      #   uses: azure/k8s-create-secret@v1
+      #   with:
+      #     container-registry-url: 'https://index.docker.io/v1/'
+      #     container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      #     secret-name: 'dockerhub-secret'
+      #   id: create-secret
+
+      - name: deploy to cluster
+        uses: actions-hub/kubectl@master
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: rollout restart deployment whatsupkent-scraper
+
+      - name: verify deployment
+        uses: actions-hub/kubectl@master
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: '"rollout status deployment whatsupkent-scraper"'

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: whatsupkent-api
+spec:
+  selector:
+    app: whatsupkent-api
+  ports:
+    - port: 80
+      targetPort: 4000
+      name: api
+      protocol: TCP
+  type: NodePort
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: whatsupkent-ingress
+spec:
+  backend:
+    serviceName: whatsupkent-api
+    servicePort: 80
