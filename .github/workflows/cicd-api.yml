@@ -30,12 +30,14 @@ jobs:
         with:
           kubeconfig: ${{ secrets.KUBECONFIG }}
 
-      - uses: Azure/k8s-create-secret@v1
-        with:
-          container-registry-url: https://index.docker.io/v1/
-          container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          secret-name: dockerhub-secret
+      # - name: Set imagePullSecret
+      #   uses: azure/k8s-create-secret@v1
+      #   with:
+      #     container-registry-url: 'https://index.docker.io/v1/'
+      #     container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      #     secret-name: 'dockerhub-secret'
+      #   id: create-secret
 
       - name: deploy to cluster
         uses: steebchen/kubectl@master
