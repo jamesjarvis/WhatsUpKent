@@ -1,4 +1,4 @@
-name: Build and deploy api
+name: Build and deploy scraper
 # on:
 #   push:
 #     branches:
@@ -19,8 +19,8 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }} -f Dockerfile-api .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }} -f Dockerfile-scraper .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }}
 
       # - uses: Azure/k8s-set-context@v1
       #   with:
@@ -40,11 +40,11 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
-          args: rollout restart deployment whatsupkent-api
+          args: rollout restart deployment whatsupkent-scraper
 
       - name: verify deployment
         uses: actions-hub/kubectl@master
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
-          args: '"rollout status deployment whatsupkent-api"'
+          args: '"rollout status deployment whatsupkent-scraper"'
