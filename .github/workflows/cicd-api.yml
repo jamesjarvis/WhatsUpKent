@@ -24,6 +24,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@master
+
       - uses: Azure/k8s-set-context@v1
         with:
           kubeconfig: ${{ secrets.KUBECONFIG }}
@@ -34,8 +36,6 @@ jobs:
           container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
           container-registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
           secret-name: dockerhub-secret
-
-      - uses: actions/checkout@master
 
       - name: deploy to cluster
         uses: steebchen/kubectl@master
