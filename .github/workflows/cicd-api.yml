@@ -26,9 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - uses: Azure/k8s-set-context@v1
-        with:
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+      # - uses: Azure/k8s-set-context@v1
+      #   with:
+      #     kubeconfig: ${{ secrets.KUBECONFIG }}
 
       # - name: Set imagePullSecret
       #   uses: azure/k8s-create-secret@v1
@@ -40,15 +40,15 @@ jobs:
       #   id: create-secret
 
       - name: deploy to cluster
-        uses: steebchen/kubectl@master
+        uses: actions-hub/kubectl@master
         env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
           args: rollout restart deployment whatsupkent-api
 
       - name: verify deployment
-        uses: steebchen/kubectl@master
+        uses: actions-hub/kubectl@master
         env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
           args: '"rollout status deployment whatsupkent-api"'
