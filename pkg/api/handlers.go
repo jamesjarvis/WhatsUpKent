@@ -67,3 +67,26 @@ func GetQuery(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, *result)
 	}
 }
+
+//Info simply returns a pretty ASCII art
+func Info(w http.ResponseWriter, r *http.Request) {
+	str := 
+`
+__          ___           _       _    _       _  __          _
+\ \        / / |         | |     | |  | |     | |/ /         | |
+ \ \  /\  / /| |__   __ _| |_ ___| |  | |_ __ | ' / ___ _ __ | |_
+  \ \/  \/ / | '_ \ / _' | __/ __| |  | | '_ \|  < / _ \ '_ \| __|
+   \  /\  /  | | | | (_| | |_\__ \ |__| | |_) | . \  __/ | | | |_
+    \/  \/   |_| |_|\__,_|\__|___/\____/| .__/|_|\_\___|_| |_|\__|
+                                        | |
+                                        |_|
+Welcome.
+You're in the wrong area.
+To get back to seeing everything going on at the University of Kent, go back to:
+https://whatsupkent.com
+
+If you are still curious about the project, find my contact details on https://jamesjarvis.io
+`
+
+	fmt.Fprintf(w, str)
+}
