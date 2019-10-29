@@ -17,8 +17,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }} -f Dockerfile-api .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api -f Dockerfile-api .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-api
 
       # - uses: Azure/k8s-set-context@v1
       #   with:

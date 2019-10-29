@@ -8,6 +8,8 @@ import (
 	badger "github.com/dgraph-io/badger"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 //URL is the url for the dgraph database
@@ -36,10 +38,14 @@ func Starter(url string) {
 	HandleError(err)
 	defer CacheDB.Close()
 
-	handler := http.HandlerFunc(Query)
+	router := mux.NewRouter()
+	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST"})
+	origins := handlers.AllowedOrigins([]string{"*"})
 
-	http.Handle("/", handler)
+	router.HandleFunc("/", Info).Methods("GET")
+	router.HandleFunc("/", Query).Methods("POST")
 
-	log.Println("Starting api service on port 4000 .......")
-	HandleError(http.ListenAndServe(":4000", nil))
+	log.Println("🤖 Starting api service on port 4000 .......")
+	HandleError(http.ListenAndServe(":4000", handlers.CORS(headers, methods, origins)(router)))
 }
