@@ -17,8 +17,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }} -f Dockerfile-scraper .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper -f Dockerfile-scraper .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/whatsupkent-scraper
 
       # - uses: Azure/k8s-set-context@v1
       #   with:
