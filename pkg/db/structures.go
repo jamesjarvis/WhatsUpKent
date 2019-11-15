@@ -111,8 +111,8 @@ func (m Module) Equal(m2 Module) bool {
 var Schema = `
 event.id: string @index(hash) .
 event.title: string @index(fulltext, term) .
-event.start_date: datetime @index(day) .
-event.end_date: datetime @index(day).
+event.start_date: datetime @index(hour) .
+event.end_date: datetime @index(hour).
 event.organiser: [uid] @reverse .
 event.part_of_module: [uid] @reverse .
 event.location: [uid] @reverse .
