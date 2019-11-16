@@ -443,7 +443,7 @@ func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
 	}
 
 	q := `{
-		oldestScrape(func: has(scrape.id), orderasc: scrape.last_scraped, first: 1) {
+		oldestScrape(func: type(Scrape), orderasc: scrape.last_scraped, first: 1) {
 			uid
 			scrape.id
 			scrape.last_scraped
