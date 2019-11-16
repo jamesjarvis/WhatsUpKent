@@ -30,3 +30,17 @@ kubectl rollout status deployment whatsupkent-api
 
 To redeploy, just run the `kubectl apply` commands again, with the updated configuration files, or to just fetch the latest container:
 `kubectl rollout restart deployment xyz`
+
+To retrieve the logs (to check if the containers are functioning correctly), run:
+
+```bash
+kubectl get pods
+```
+
+To retrieve the current pods and their names, then run:
+
+```bash
+kubectl logs pod/pod_name_x
+```
+
+To retrieve the logs
