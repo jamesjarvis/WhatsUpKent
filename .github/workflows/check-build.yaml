@@ -1,0 +1,28 @@
+name: Will it build?
+
+on:
+  pull_request
+
+jobs:
+  check-api-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - run: |
+          docker build -t whatsupkent-api -f Dockerfile-api .
+
+      - run: |
+          docker image rm whatsupkent-api
+
+  check-scraper-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - run: |
+          docker build -t whatsupkent-scraper -f Dockerfile-scraper .
+
+      - run: |
+          docker image rm whatsupkent-scraper
+
