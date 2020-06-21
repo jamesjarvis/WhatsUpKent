@@ -2,7 +2,7 @@ version: "3.7"
 services:
   #DGraph services
   zero:
-    image: dgraph/dgraph:v1.1.0
+    image: dgraph/dgraph:v20.03.3
     volumes:
       - type: volume
         source: dgraph
@@ -17,7 +17,7 @@ services:
     networks:
       - backend
   server:
-    image: dgraph/dgraph:v1.1.0
+    image: dgraph/dgraph:v20.03.3
     volumes:
       - type: volume
         source: dgraph
@@ -36,7 +36,7 @@ services:
     logging: # This is only to disable logging for easier local debug
       driver: none
   ratel:
-    image: dgraph/dgraph:v1.1.0
+    image: dgraph/dgraph:v20.03.3
     volumes:
       - type: volume
         source: dgraph

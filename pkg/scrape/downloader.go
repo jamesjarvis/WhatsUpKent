@@ -3,14 +3,14 @@ package scrape
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v200"
 )
 
 // FilesIds for handling the currently scraped file
@@ -33,6 +33,7 @@ type InitialConfig struct {
 	//EventProcessPool is the number of workers spawned to process the events within a file being parsed
 	//If you have 3 event process workers, and 4 process workers, then you'll have 12 concurrent event workers
 	EventProcessPool int
+	DBClient         *dgo.Dgraph
 }
 
 // The point of this section is to concurrently download ical files from a specified ID, and cache them on the system.
@@ -56,56 +57,62 @@ func FormatURL(id int) string {
 	return fmt.Sprintf("https://www.kent.ac.uk/timetabling/ical/%d.ics", id)
 }
 
-// FormatFilename formats the integer id into the filename path
-func FormatFilename(id int) string {
-	return filepath.Join(getIcalDir(), fmt.Sprintf("%d.ics", id))
-}
+// // FormatFilename formats the integer id into the filename path
+// func FormatFilename(id int) string {
+// 	return filepath.Join(getIcalDir(), fmt.Sprintf("%d.ics", id))
+// }
 
-func getIcalDir() string {
-	ex, err := os.Executable()
-	if err != nil {
-		log.Fatal(err)
-	}
-	exPath := filepath.Join(filepath.Dir(ex), "ical_cache")
-	return exPath
-}
+// func getIcalDir() string {
+// 	ex, err := os.Executable()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	exPath := filepath.Join(filepath.Dir(ex), "ical_cache")
+// 	return exPath
+// }
 
 // DownloadFile makes the request and saves the result to a file
-func DownloadFile(fid FilesIds) error {
+func DownloadFile(id int) (*FilesIds, error) {
 
-	url := FormatURL(fid.id)
+	url := FormatURL(id)
 
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	} else if resp.StatusCode != 200 {
 		if resp.StatusCode >= 500 {
-			return ErrUniversityPanicking
+			return nil, ErrUniversityPanicking
 		}
-		return ErrInvalidID
+		return nil, ErrInvalidID
 	}
 	defer resp.Body.Close()
 
 	// Create the file
-	out, err := os.Create(fid.filename)
+	tmpfile, err := ioutil.TempFile("", "*.ics")
 	if err != nil {
-		log.Fatal(err)
-		return err
+		return nil, err
 	}
-	defer out.Close()
 
 	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	_, err = io.Copy(tmpfile, resp.Body)
 
-	return err
+	defer tmpfile.Close()
+
+	// Create mapping to temp file
+	fid := &FilesIds{
+		id:       id,
+		filename: tmpfile.Name(),
+	}
+
+	return fid, nil
 }
 
-//CreateDownloadDir does what it says on the tin
-func CreateDownloadDir() {
-	//Set up cache directory
-	os.Mkdir(getIcalDir(), os.FileMode(0755))
-}
+// //CreateDownloadDir does what it says on the tin
+// func CreateDownloadDir() error {
+// 	//Set up cache directory
+// 	return os.Mkdir(getIcalDir(), os.FileMode(0755))
+// }
 
 // downloadAll downloads all of the urls in the channel
 func downloadAll(chIds chan int, chFiles chan FilesIds, config *InitialConfig) {
@@ -123,14 +130,10 @@ func downloadAll(chIds chan int, chFiles chan FilesIds, config *InitialConfig) {
 
 func worker(queue chan int, worknumber int, chFiles chan FilesIds, wg *sync.WaitGroup) {
 	for id := range queue {
-		fid := FilesIds{
-			id:       id,
-			filename: FormatFilename(id),
-		}
-		err := DownloadFile(fid)
+		fid, err := DownloadFile(id)
 
 		if err == nil {
-			chFiles <- fid
+			chFiles <- *fid
 		} else if err != ErrInvalidID {
 			log.Println(err)
 		}

@@ -2,16 +2,15 @@ package db
 
 import (
 	"context"
-	"log"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v200"
+	"github.com/dgraph-io/dgo/v200/protos/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
 // NewClient sets up a gRPC and returns a new dgraph connection
-func NewClient(url string) *dgo.Dgraph {
+func NewClient(url string) (*dgo.Dgraph, error) {
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
 	dialOpts := append([]grpc.DialOption{},
@@ -20,12 +19,12 @@ func NewClient(url string) *dgo.Dgraph {
 	d, err := grpc.Dial(url, dialOpts...)
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return dgo.NewDgraphClient(
 		api.NewDgraphClient(d),
-	)
+	), nil
 }
 
 // Setup initiates the schema into the database

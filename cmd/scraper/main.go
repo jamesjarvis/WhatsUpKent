@@ -11,10 +11,16 @@ import (
 
 func main() {
 	// Setup Scraper
-	scrape.CreateDownloadDir()
 	url := os.Getenv("DGRAPH_URL")
 	if url == "" {
 		url = "localhost:9080"
+	}
+
+	// Setup database connection
+	log.Println("Setting up DB Connection")
+	client, err := db.NewClient(url)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	config := scrape.InitialConfig{
@@ -28,9 +34,8 @@ func main() {
 		EventProcessPool: 5,
 	}
 
-	// Setup database connection
-	client := db.NewClient(url)
-	err := db.Setup(client)
+	log.Println("Install schema into DB")
+	err = db.Setup(client)
 	if err != nil {
 		log.Fatal(err)
 	}

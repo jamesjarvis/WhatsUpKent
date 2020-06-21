@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v200"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -23,11 +23,7 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 		}
 
 		//Download file
-		fid := FilesIds{
-			id:       oldestScrape.ID,
-			filename: FormatFilename(oldestScrape.ID),
-		}
-		err := DownloadFile(fid)
+		fid, err := DownloadFile(oldestScrape.ID)
 
 		if err != nil {
 			if err != ErrInvalidID {
@@ -41,7 +37,7 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 			}
 		} else {
 			//Scrape file
-			err = ProcessFile(c, fid, eventMX, config)
+			err = ProcessFile(c, *fid, eventMX, config)
 			duration := time.Since(*oldestScrape.LastScraped)
 			log.Printf("Rescraped %d, after %s minutes", fid.id, duration)
 		}

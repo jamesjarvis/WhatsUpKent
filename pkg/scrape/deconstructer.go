@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/apognu/gocal"
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v200"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 

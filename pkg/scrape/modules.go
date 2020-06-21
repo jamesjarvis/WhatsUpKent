@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v200"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 

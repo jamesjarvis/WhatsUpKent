@@ -19,7 +19,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o scraper cmd/scraper/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o scraper cmd/scraper/main.go
 
 
 ######## Start a new stage from scratch #######

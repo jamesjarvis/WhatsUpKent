@@ -1,13 +1,17 @@
 package db
 
-import "time"
+import (
+	"time"
+
+	"github.com/twpayne/go-geom"
+)
 
 // Golang schemas
 
-type loc struct {
-	Type   string    `json:"type,omitempty"`
-	Coords []float64 `json:"coordinates,omitempty"`
-}
+// type loc struct {
+// 	Type   string    `json:"type,omitempty"`
+// 	Coords []float64 `json:"coordinates,omitempty"`
+// }
 
 type Module struct {
 	UID     string `json:"uid,omitempty"`
@@ -34,12 +38,12 @@ type Person struct {
 }
 
 type Location struct {
-	UID            string   `json:"uid,omitempty"`
-	ID             string   `json:"location.id,omitempty"`
-	Name           string   `json:"location.name,omitempty"`
-	Location       loc      `json:"location.loc,omitempty"`
-	DisabledAccess bool     `json:"location.disabled_access"`
-	DType          []string `json:"dgraph.type,omitempty"`
+	UID            string     `json:"uid,omitempty"`
+	ID             string     `json:"location.id,omitempty"`
+	Name           string     `json:"location.name,omitempty"`
+	Location       geom.Point `json:"location.loc,omitempty"`
+	DisabledAccess bool       `json:"location.disabled_access"`
+	DType          []string   `json:"dgraph.type,omitempty"`
 }
 
 type Event struct {
@@ -109,32 +113,36 @@ func (m Module) Equal(m2 Module) bool {
 
 // Schema is the database schema
 var Schema = `
+location.id: string @index(exact) .
+location.name: string .
+location.loc: geo .
+location.disabled_access: bool .
+
+module.code: string @index(exact) .
+module.name: string @index(fulltext) .
+module.subject: string @index(fulltext, exact) .
+
+person.name: string .
+person.email: string .
+
+scrape.id: int @index(int) .
+scrape.last_scraped: datetime .
+scrape.found_event: [uid] @reverse .
+
 event.id: string @index(hash) .
 event.title: string @index(fulltext, term) .
+event.description: string .
 event.start_date: datetime @index(hour) .
 event.end_date: datetime @index(hour).
 event.organiser: [uid] @reverse .
 event.part_of_module: [uid] @reverse .
 event.location: [uid] @reverse .
 
-location.id: string @index(exact) .
-
-module.code: string @index(exact) .
-module.name: string @index(fulltext) .
-module.subject: string @index(fulltext, exact) .
-
-scrape.found_event: [uid] @reverse .
-scrape.id: int @index(int) .
-
-type Loc {
-  type: string
-  coords: float
-}
 
 type Location {
 	location.id: string
 	location.name: string
-	location.loc: Loc
+	location.loc: geo
 	location.disabled_access: bool
 }
 
