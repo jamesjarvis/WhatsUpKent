@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v200"
+	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
 // FilesIds for handling the currently scraped file
@@ -33,14 +33,14 @@ type InitialConfig struct {
 	//EventProcessPool is the number of workers spawned to process the events within a file being parsed
 	//If you have 3 event process workers, and 4 process workers, then you'll have 12 concurrent event workers
 	EventProcessPool int
-	DBClient         *dgo.Dgraph
+	DBClient         *db.ConfigDB
 }
 
 // The point of this section is to concurrently download ical files from a specified ID, and cache them on the system.
 // This should also provide a function which can delete a cache if it exists
 
 // GetIds adds all the urls to be scraped to a channel
-func GetIds(config *InitialConfig, chIds chan int) error {
+func (config *InitialConfig) GetIds(chIds chan int) error {
 	if config == nil {
 		return ErrConfig
 	}
@@ -56,20 +56,6 @@ func GetIds(config *InitialConfig, chIds chan int) error {
 func FormatURL(id int) string {
 	return fmt.Sprintf("https://www.kent.ac.uk/timetabling/ical/%d.ics", id)
 }
-
-// // FormatFilename formats the integer id into the filename path
-// func FormatFilename(id int) string {
-// 	return filepath.Join(getIcalDir(), fmt.Sprintf("%d.ics", id))
-// }
-
-// func getIcalDir() string {
-// 	ex, err := os.Executable()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	exPath := filepath.Join(filepath.Dir(ex), "ical_cache")
-// 	return exPath
-// }
 
 // DownloadFile makes the request and saves the result to a file
 func DownloadFile(id int) (*FilesIds, error) {
@@ -108,14 +94,8 @@ func DownloadFile(id int) (*FilesIds, error) {
 	return fid, nil
 }
 
-// //CreateDownloadDir does what it says on the tin
-// func CreateDownloadDir() error {
-// 	//Set up cache directory
-// 	return os.Mkdir(getIcalDir(), os.FileMode(0755))
-// }
-
 // downloadAll downloads all of the urls in the channel
-func downloadAll(chIds chan int, chFiles chan FilesIds, config *InitialConfig) {
+func (config *InitialConfig) downloadAll(chIds chan int, chFiles chan *FilesIds) {
 	var downloadWG sync.WaitGroup
 
 	numberOfWorkers := config.DownloadPool
@@ -128,12 +108,12 @@ func downloadAll(chIds chan int, chFiles chan FilesIds, config *InitialConfig) {
 	log.Println("------- downloadAll completed ------")
 }
 
-func worker(queue chan int, worknumber int, chFiles chan FilesIds, wg *sync.WaitGroup) {
+func worker(queue chan int, worknumber int, chFiles chan *FilesIds, wg *sync.WaitGroup) {
 	for id := range queue {
 		fid, err := DownloadFile(id)
 
 		if err == nil {
-			chFiles <- *fid
+			chFiles <- fid
 		} else if err != ErrInvalidID {
 			log.Println(err)
 		}
@@ -142,22 +122,22 @@ func worker(queue chan int, worknumber int, chFiles chan FilesIds, wg *sync.Wait
 }
 
 // processAll scrapes all files in the channel
-func processAll(c *dgo.Dgraph, chFiles chan FilesIds, config *InitialConfig) {
+func (config *InitialConfig) processAll(chFiles chan *FilesIds) {
 	var processWG sync.WaitGroup
 	var eventMX = &sync.Mutex{}
 
 	numberOfWorkers := config.ProcessPool
 	for i := 0; i < numberOfWorkers; i++ {
 		processWG.Add(1)
-		go processWorker(c, chFiles, eventMX, &processWG, config)
+		go config.processWorker(chFiles, eventMX, &processWG)
 	}
 	processWG.Wait()
 	log.Println("------- processAll completed ------")
 }
 
-func processWorker(c *dgo.Dgraph, chFiles chan FilesIds, mx *sync.Mutex, wg *sync.WaitGroup, config *InitialConfig) {
+func (config *InitialConfig) processWorker(chFiles chan *FilesIds, mx *sync.Mutex, wg *sync.WaitGroup) {
 	for filename := range chFiles {
-		err := ProcessFile(c, filename, mx, config)
+		err := config.ProcessFile(filename, mx)
 
 		if err != nil {
 			log.Fatal(err)
@@ -167,8 +147,8 @@ func processWorker(c *dgo.Dgraph, chFiles chan FilesIds, mx *sync.Mutex, wg *syn
 }
 
 // ProcessFile sends the file to be scraped, and once that is complete, it deletes the cached file
-func ProcessFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig) error {
-	err := ParseCal(c, fid, mx, config)
+func (config *InitialConfig) ProcessFile(fid *FilesIds, mx *sync.Mutex) error {
+	err := config.ParseCal(fid, mx)
 
 	// Remove the cache
 	os.Remove(fid.filename)
@@ -176,17 +156,17 @@ func ProcessFile(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialCon
 }
 
 // FuckIt Runs the main scraping program
-func FuckIt(config *InitialConfig, c *dgo.Dgraph) {
+func (config *InitialConfig) FuckIt() {
 	//Channels
 	chIds := make(chan int, 100) //Channel of ids to be downloaded
 
-	chFiles := make(chan FilesIds, 50) //Channel of filenames to be scraped
+	chFiles := make(chan *FilesIds, 50) //Channel of filenames to be scraped
 
-	go GetIds(config, chIds) //Populate the URLs to be downloaded
+	go config.GetIds(chIds) //Populate the URLs to be downloaded
 
 	// Download all of the urls in the channel
-	go downloadAll(chIds, chFiles, config)
+	go config.downloadAll(chIds, chFiles)
 
 	// Whilst this is happening, scrape all the files in the other channel
-	processAll(c, chFiles, config)
+	config.processAll(chFiles)
 }

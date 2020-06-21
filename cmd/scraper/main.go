@@ -32,16 +32,17 @@ func main() {
 		DownloadPool:     1,
 		ProcessPool:      3,
 		EventProcessPool: 5,
+		DBClient:         client,
 	}
 
 	log.Println("Install schema into DB")
-	err = db.Setup(client)
+	err = config.DBClient.Setup()
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Print("Schema successfully updated")
 
-	s, errOld := db.GetOldestScrape(client)
+	s, errOld := config.DBClient.GetOldestScrape()
 	if errOld != nil {
 		log.Fatal(errOld)
 	}
@@ -49,21 +50,21 @@ func main() {
 	//Only enter the big scraping if the oldest scrape is over a week old. Helps if it ever crashes (shouldnt do!)
 	if oldestAge > config.MaxAge {
 		// Update locations
-		errLoc := scrape.Locations(client)
+		errLoc := config.Locations()
 		if errLoc != nil {
 			log.Fatal(errLoc)
 		}
 		log.Println("------------- Location scraping complete -------------")
 
 		// Update Modules
-		errMod := scrape.Modules(client)
+		errMod := config.Modules()
 		if errMod != nil {
 			log.Fatal(errMod)
 		}
 		log.Println("------------- Module scraping complete -------------")
 
 		// Update the ical feeds
-		scrape.FuckIt(&config, client)
+		config.FuckIt()
 		log.Println("------------- Event scraping complete -------------")
 	}
 
@@ -71,7 +72,7 @@ func main() {
 	config.EventProcessPool = 10
 
 	// Now the main scrape is complete, enter a "slow mode"
-	continuousErr := scrape.Continuous(&config, client)
+	continuousErr := config.Continuous()
 	if continuousErr != nil {
 		log.Fatal(continuousErr)
 	}

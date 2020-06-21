@@ -22,56 +22,59 @@ type ErrorJSON struct {
 }
 
 //Query performs a read only query
-func Query(w http.ResponseWriter, r *http.Request) {
+func (config *Config) Query() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Read request body and close it
+		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+		// HandleError(err)
+		if err != nil {
+			fmt.Fprintf(w, err.Error())
+		}
+		defer r.Body.Close()
 
-	// Read request body and close it
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-	// HandleError(err)
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
-	}
-	defer r.Body.Close()
-
-	//Retrieve query result
-	result, err := PerformCachedQuery(string(body))
-	w.Header().Set("Content-Type", "application/json")
-	if err != nil {
-		w.WriteHeader(500)
-		errorJSON := ErrorJSON{Status: "Query Failed", Error: "Query not correctly formatted."}
-		marshalled, marshallErr := json.Marshal(errorJSON)
-		HandleError(marshallErr)
-		fmt.Fprintf(w, string(marshalled))
-	} else {
-		fmt.Fprintf(w, *result)
+		//Retrieve query result
+		result, err := config.PerformCachedQuery(string(body))
+		w.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			w.WriteHeader(500)
+			errorJSON := ErrorJSON{Status: "Query Failed", Error: "Query not correctly formatted."}
+			marshalled, marshallErr := json.Marshal(errorJSON)
+			HandleError(marshallErr)
+			fmt.Fprintf(w, string(marshalled))
+		} else {
+			fmt.Fprintf(w, *result)
+		}
 	}
 }
 
 //GetQuery performs a read only query without badger
-func GetQuery(w http.ResponseWriter, r *http.Request) {
-	// Read request body and close it
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-	HandleError(err)
-	defer r.Body.Close()
-
-	//Retrieve query result
-	result, err := PerformQuery(string(body))
-	w.Header().Set("Content-Type", "application/json")
-	if err != nil {
+func (config *Config) GetQuery() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Read request body and close it
+		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 		HandleError(err)
-		w.WriteHeader(500)
-		errorJSON := ErrorJSON{Status: "Query Failed", Error: "Query probably not correctly formatted."}
-		marshalled, marshallErr := json.Marshal(errorJSON)
-		HandleError(marshallErr)
-		fmt.Fprintf(w, string(marshalled))
-	} else {
-		fmt.Fprintf(w, *result)
+		defer r.Body.Close()
+
+		//Retrieve query result
+		result, err := config.PerformQuery(string(body))
+		w.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			HandleError(err)
+			w.WriteHeader(500)
+			errorJSON := ErrorJSON{Status: "Query Failed", Error: "Query probably not correctly formatted."}
+			marshalled, marshallErr := json.Marshal(errorJSON)
+			HandleError(marshallErr)
+			fmt.Fprintf(w, string(marshalled))
+		} else {
+			fmt.Fprintf(w, *result)
+		}
 	}
 }
 
 //Info simply returns a pretty ASCII art
 func Info(w http.ResponseWriter, r *http.Request) {
-	str := 
-`
+	str :=
+		`
 __          ___           _       _    _       _  __          _
 \ \        / / |         | |     | |  | |     | |/ /         | |
  \ \  /\  / /| |__   __ _| |_ ___| |  | |_ __ | ' / ___ _ __ | |_
