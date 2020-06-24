@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/apognu/gocal"
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -23,7 +22,7 @@ import (
 // This pool has no limit, it shuold read the file, deconstruct the ical into individual events and then add it to the database, after that, it should delete the cached version
 
 // ParseCal opens the file and starts the parsing
-func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig) error {
+func (config *InitialConfig) ParseCal(fid *FilesIds, mx *sync.Mutex) error {
 	f, _ := os.Open(fid.filename)
 	defer f.Close()
 
@@ -44,7 +43,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig
 		DType:       []string{"Scrape"},
 	}
 
-	currentScrape, err := db.GetScrape(c, scrapeEvent)
+	currentScrape, err := config.DBClient.GetScrape(scrapeEvent)
 	if err != nil {
 		return err
 	}
@@ -58,7 +57,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig
 
 	for i := 0; i <= numberOfWorkers; i++ {
 		wg.Add(1)
-		go handleGenerator(c, mx, eventsChan, resultsChan, &wg)
+		go config.handleGenerator(mx, eventsChan, resultsChan, &wg)
 	}
 
 	for _, e := range parser.Events {
@@ -80,7 +79,7 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig
 		scrapeEvent.UID = currentScrape.UID
 	}
 	scrapeEvent.FoundEvent = events
-	_, err = db.UpsertScrape(c, scrapeEvent)
+	_, err = config.DBClient.UpsertScrape(scrapeEvent)
 	if err != nil {
 		return err
 	}
@@ -90,9 +89,9 @@ func ParseCal(c *dgo.Dgraph, fid FilesIds, mx *sync.Mutex, config *InitialConfig
 	return nil
 }
 
-func handleGenerator(c *dgo.Dgraph, mx *sync.Mutex, eventsChan <-chan gocal.Event, resultsChan chan<- db.Event, wg *sync.WaitGroup) {
+func (config *InitialConfig) handleGenerator(mx *sync.Mutex, eventsChan <-chan gocal.Event, resultsChan chan<- db.Event, wg *sync.WaitGroup) {
 	for e := range eventsChan {
-		event, genErr := generateEvent(c, &e, mx)
+		event, genErr := config.generateEvent(&e, mx)
 		if genErr != nil {
 			log.Fatal(genErr)
 		}
@@ -104,7 +103,7 @@ func handleGenerator(c *dgo.Dgraph, mx *sync.Mutex, eventsChan <-chan gocal.Even
 	wg.Done()
 }
 
-func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*db.Event, error) {
+func (config *InitialConfig) generateEvent(scrapedEvent *gocal.Event, mx *sync.Mutex) (*db.Event, error) {
 	eventID, idErr := generateEventID(scrapedEvent.Uid)
 	if idErr != nil {
 		return nil, idErr
@@ -112,7 +111,7 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 
 	//Locations connecting
 	locations := make([]db.Location, 0)
-	loc, locErr := db.GetLocationFromKentSlug(c, scrapedEvent.Location)
+	loc, locErr := config.DBClient.GetLocationFromKentSlug(scrapedEvent.Location)
 	if locErr != nil {
 		return nil, locErr
 	}
@@ -130,7 +129,7 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 	if sdsErr != nil {
 		return nil, sdsErr
 	}
-	mod, modErr := db.GetModuleFromSDSCode(c, sdsCode)
+	mod, modErr := config.DBClient.GetModuleFromSDSCode(sdsCode)
 	if modErr != nil {
 		return nil, modErr
 	}
@@ -156,7 +155,7 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 
 	//Mutually exclude read,write operations on the database
 	mx.Lock()
-	storedEvent, storingErr := StoreEvent(c, &event)
+	storedEvent, storingErr := config.StoreEvent(&event)
 	mx.Unlock()
 	if storingErr != nil {
 		return nil, storingErr
@@ -166,13 +165,13 @@ func generateEvent(c *dgo.Dgraph, scrapedEvent *gocal.Event, mx *sync.Mutex) (*d
 	}
 
 	//Exits here if it created a new event, and has then retrieved that event from the database
-	return db.GetEvent(c, event)
+	return config.DBClient.GetEvent(event)
 }
 
 //StoreEvent handles the read and write operations
 //Returns the event if it already exists, or nil, with a nil error if it has just been created
-func StoreEvent(c *dgo.Dgraph, e *db.Event) (*db.Event, error) {
-	currentEvent, getErr := db.GetEvent(c, *e)
+func (config *InitialConfig) StoreEvent(e *db.Event) (*db.Event, error) {
+	currentEvent, getErr := config.DBClient.GetEvent(*e)
 	if getErr != nil {
 		return nil, getErr
 	}
@@ -184,7 +183,7 @@ func StoreEvent(c *dgo.Dgraph, e *db.Event) (*db.Event, error) {
 			return currentEvent, nil
 		}
 	}
-	_, upsertErr := db.UpsertEvent(c, *e)
+	_, upsertErr := config.DBClient.UpsertEvent(*e)
 	if upsertErr != nil {
 		return nil, upsertErr
 	}

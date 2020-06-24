@@ -6,46 +6,65 @@ import (
 	"sync"
 
 	badger "github.com/dgraph-io/badger"
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
-//URL is the url for the dgraph database
-var URL = "localhost:9080"
+// Config is the API configuration
+type Config struct {
+	//URL is the url for the dgraph database
+	URL string
+	// DBClient is the database client
+	DBClient *db.ConfigDB
+	// CacheDB is the cache client
+	CacheDB *badger.DB
+	// Lock is a global lock for database operations, just makes it a bit nicer.
+	Lock *sync.Mutex
+}
 
-// Client is the database client
-var Client *dgo.Dgraph
+// SetupRouter returns a router with all the routes attached
+func (config *Config) SetupRouter() *mux.Router {
+	router := mux.NewRouter()
 
-// CacheDB is the cache client
-var CacheDB *badger.DB
+	router.HandleFunc("/", Info).Methods("GET")
+	router.HandleFunc("/", config.Query()).Methods("POST")
 
-// Lock is a global lock for database operations, just makes it a bit nicer.
-var Lock *sync.Mutex
+	return router
+}
 
 // Starter starts the server
-func Starter(url string) {
-	URL = url
-	Lock = &sync.Mutex{}
-	var err error
+func Starter(url string) error {
 
+	log.Println("Setting up DB Client")
 	// Set up a new DB client
-	Client = db.NewClient(URL)
+	Client, err := db.NewClient(url)
+	if err != nil {
+		return err
+	}
 
+	log.Println("Setting up Cache client")
 	// Set up a new cache client
-	CacheDB, err = badger.Open(badger.DefaultOptions("/cache"))
-	HandleError(err)
+	CacheDB, err := badger.Open(badger.DefaultOptions("/cache"))
+	if err != nil {
+		return err
+	}
+
 	defer CacheDB.Close()
 
-	router := mux.NewRouter()
+	config := &Config{
+		URL:      url,
+		DBClient: Client,
+		CacheDB:  CacheDB,
+		Lock:     &sync.Mutex{},
+	}
+
 	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	methods := handlers.AllowedMethods([]string{"GET", "POST"})
 	origins := handlers.AllowedOrigins([]string{"*"})
 
-	router.HandleFunc("/", Info).Methods("GET")
-	router.HandleFunc("/", Query).Methods("POST")
+	router := config.SetupRouter()
 
 	log.Println("🤖 Starting api service on port 4000 .......")
-	HandleError(http.ListenAndServe(":4000", handlers.CORS(headers, methods, origins)(router)))
+	return http.ListenAndServe(":4000", handlers.CORS(headers, methods, origins)(router))
 }

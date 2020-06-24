@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -80,8 +79,8 @@ func yesNoToBool(s string) bool {
 }
 
 //Locations scrapes the locations from kent api if they dont already exist
-func Locations(c *dgo.Dgraph) error {
-	n, countErr := db.CountNodesWithFieldUnsafe(c, "location.id")
+func (config *InitialConfig) Locations() error {
+	n, countErr := config.DBClient.CountNodesWithFieldUnsafe("location.id")
 	if countErr != nil {
 		return countErr
 	}
@@ -99,7 +98,7 @@ func Locations(c *dgo.Dgraph) error {
 				DType:          []string{"Location"},
 			}
 
-			_, er1 := db.UpsertLocation(c, tempLoc)
+			_, er1 := config.DBClient.UpsertLocation(tempLoc)
 			if er1 != nil {
 				return er1
 			}

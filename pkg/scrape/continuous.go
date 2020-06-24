@@ -4,30 +4,23 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
 //Continuous is the continous scraper
-func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
+func (config *InitialConfig) Continuous() error {
 	var eventMX = &sync.Mutex{}
 
 	for {
 		time.Sleep(config.SlowInterval)
 
 		//Get oldest scrape
-		oldestScrape, oldErr := db.GetOldestScrape(c)
+		oldestScrape, oldErr := config.DBClient.GetOldestScrape()
 		if oldErr != nil {
 			return oldErr
 		}
 
 		//Download file
-		fid := FilesIds{
-			id:       oldestScrape.ID,
-			filename: FormatFilename(oldestScrape.ID),
-		}
-		err := DownloadFile(fid)
+		fid, err := DownloadFile(oldestScrape.ID)
 
 		if err != nil {
 			if err != ErrInvalidID {
@@ -35,16 +28,15 @@ func Continuous(config *InitialConfig, c *dgo.Dgraph) error {
 			}
 			//Remove the dead scrape
 			log.Printf("Scrape %d seems dead, removing from database...", fid.id)
-			removeScrapeErr := db.RemoveScrape(c, *oldestScrape)
+			removeScrapeErr := config.DBClient.RemoveScrape(*oldestScrape)
 			if removeScrapeErr != nil {
 				return removeScrapeErr
 			}
 		} else {
 			//Scrape file
-			err = ProcessFile(c, fid, eventMX, config)
+			err = config.ProcessFile(fid, eventMX)
 			duration := time.Since(*oldestScrape.LastScraped)
 			log.Printf("Rescraped %d, after %s minutes", fid.id, duration)
 		}
 	}
-	return nil
 }

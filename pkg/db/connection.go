@@ -2,16 +2,20 @@ package db
 
 import (
 	"context"
-	"log"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v200"
+	"github.com/dgraph-io/dgo/v200/protos/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
+// ConfigDB is the configuration for DGraph
+type ConfigDB struct {
+	DBClient *dgo.Dgraph
+}
+
 // NewClient sets up a gRPC and returns a new dgraph connection
-func NewClient(url string) *dgo.Dgraph {
+func NewClient(url string) (*ConfigDB, error) {
 	// Dial a gRPC connection. The address to dial to can be configured when
 	// setting up the dgraph cluster.
 	dialOpts := append([]grpc.DialOption{},
@@ -20,18 +24,22 @@ func NewClient(url string) *dgo.Dgraph {
 	d, err := grpc.Dial(url, dialOpts...)
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return dgo.NewDgraphClient(
+	db := dgo.NewDgraphClient(
 		api.NewDgraphClient(d),
 	)
+
+	return &ConfigDB{
+		DBClient: db,
+	}, nil
 }
 
 // Setup initiates the schema into the database
-func Setup(c *dgo.Dgraph) error {
+func (config *ConfigDB) Setup() error {
 	// Install a schema into dgraph. Accounts have a `name` and a `balance`.
-	err := c.Alter(context.Background(), &api.Operation{
+	err := config.DBClient.Alter(context.Background(), &api.Operation{
 		Schema: Schema,
 	})
 	return err

@@ -7,8 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v200/protos/api"
 )
 
 // This file should contain methods for interacting with the data easily.
@@ -17,15 +16,15 @@ import (
 // GetScrape should recieve a dgraph client and a scrape struct,
 // and return the official scrape struct from the database, complete with Uid for referencing
 // if no such struct exists, then it returns an error
-func GetScrape(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
+func (config *ConfigDB) GetScrape(scrape Scrape) (*Scrape, error) {
 	if scrape.UID != "" {
-		return getScrapeWithID(c, scrape)
+		return config.getScrapeWithID(scrape)
 	}
-	return getScrapeWithoutID(c, scrape)
+	return config.getScrapeWithoutID(scrape)
 }
 
-func getScrapeWithID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) getScrapeWithID(scrape Scrape) (*Scrape, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindScrape($uid: string) {
@@ -64,8 +63,8 @@ func getScrapeWithID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
 	return &r.FindScrape[0], nil
 }
 
-func getScrapeWithoutID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) getScrapeWithoutID(scrape Scrape) (*Scrape, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindScrapeNoID($id: int) {
@@ -105,7 +104,7 @@ func getScrapeWithoutID(c *dgo.Dgraph, scrape Scrape) (*Scrape, error) {
 }
 
 // UpsertScrape upserts the scrape struct into the database
-func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (*api.Response, error) {
+func (config *ConfigDB) UpsertScrape(scrape Scrape) (*api.Response, error) {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
@@ -116,7 +115,7 @@ func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (*api.Response, error) {
 	}
 
 	mu.SetJson = pb
-	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	assigned, err := config.DBClient.NewTxn().Mutate(ctx, mu)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +123,7 @@ func UpsertScrape(c *dgo.Dgraph, scrape Scrape) (*api.Response, error) {
 }
 
 //RemoveScrape deletes the specified scrape from the database.
-func RemoveScrape(c *dgo.Dgraph, scrape Scrape) error {
+func (config *ConfigDB) RemoveScrape(scrape Scrape) error {
 	ctx := context.Background()
 	d := map[string]string{"uid": scrape.UID}
 	pb, err := json.Marshal(d)
@@ -137,7 +136,7 @@ func RemoveScrape(c *dgo.Dgraph, scrape Scrape) error {
 		DeleteJson: pb,
 	}
 
-	_, err = c.NewTxn().Mutate(ctx, mu)
+	_, err = config.DBClient.NewTxn().Mutate(ctx, mu)
 	if err != nil {
 		return err
 	}
@@ -147,15 +146,15 @@ func RemoveScrape(c *dgo.Dgraph, scrape Scrape) error {
 // GetEvent should recieve a dgraph client and an event struct,
 // and return the official event struct from the database, complete with Uid for referencing
 // if no such event exists, then it returns an error
-func GetEvent(c *dgo.Dgraph, event Event) (*Event, error) {
+func (config *ConfigDB) GetEvent(event Event) (*Event, error) {
 	if event.UID != "" {
-		return getEventWithUID(c, event)
+		return config.getEventWithUID(event)
 	}
-	return getEventWithoutUID(c, event)
+	return config.getEventWithoutUID(event)
 }
 
-func getEventWithUID(c *dgo.Dgraph, event Event) (*Event, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) getEventWithUID(event Event) (*Event, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindEvent($id: string) {
@@ -206,8 +205,8 @@ func getEventWithUID(c *dgo.Dgraph, event Event) (*Event, error) {
 	return &r.FindEvent[0], nil
 }
 
-func getEventWithoutUID(c *dgo.Dgraph, event Event) (*Event, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) getEventWithoutUID(event Event) (*Event, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindEventNoUID($id: string) {
@@ -258,7 +257,7 @@ func getEventWithoutUID(c *dgo.Dgraph, event Event) (*Event, error) {
 }
 
 // UpsertEvent upserts the event struct into the database
-func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
+func (config *ConfigDB) UpsertEvent(event Event) (*api.Response, error) {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
@@ -269,7 +268,7 @@ func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
 	}
 
 	mu.SetJson = pb
-	assigned, upsertErr := c.NewTxn().Mutate(ctx, mu)
+	assigned, upsertErr := config.DBClient.NewTxn().Mutate(ctx, mu)
 	if upsertErr != nil {
 		// if upsertErr == y.ErrAborted {
 		// }
@@ -279,8 +278,8 @@ func UpsertEvent(c *dgo.Dgraph, event Event) (*api.Response, error) {
 }
 
 //GetLocationFromKentSlug returns a matching location from the slug kent uses internally
-func GetLocationFromKentSlug(c *dgo.Dgraph, slug string) (*Location, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) GetLocationFromKentSlug(slug string) (*Location, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindLocationFromSlug($id: string) {
@@ -316,7 +315,7 @@ func GetLocationFromKentSlug(c *dgo.Dgraph, slug string) (*Location, error) {
 }
 
 // UpsertLocation upserts the location struct into the database
-func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
+func (config *ConfigDB) UpsertLocation(loc Location) (*api.Response, error) {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
@@ -327,7 +326,7 @@ func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
 	}
 
 	mu.SetJson = pb
-	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	assigned, err := config.DBClient.NewTxn().Mutate(ctx, mu)
 	if err != nil {
 		return nil, err
 	}
@@ -335,8 +334,8 @@ func UpsertLocation(c *dgo.Dgraph, loc Location) (*api.Response, error) {
 }
 
 //GetModuleFromSDSCode returns a matching module from the slug kent uses internally, or nil if it doesnt exist
-func GetModuleFromSDSCode(c *dgo.Dgraph, slug string) (*Module, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) GetModuleFromSDSCode(slug string) (*Module, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 	q :=
 		`query FindModuleFromCode($id: string) {
@@ -372,7 +371,7 @@ func GetModuleFromSDSCode(c *dgo.Dgraph, slug string) (*Module, error) {
 }
 
 // UpsertModule upserts the location struct into the database
-func UpsertModule(c *dgo.Dgraph, m Module) (*api.Response, error) {
+func (config *ConfigDB) UpsertModule(m Module) (*api.Response, error) {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
@@ -383,7 +382,7 @@ func UpsertModule(c *dgo.Dgraph, m Module) (*api.Response, error) {
 	}
 
 	mu.SetJson = pb
-	assigned, err := c.NewTxn().Mutate(ctx, mu)
+	assigned, err := config.DBClient.NewTxn().Mutate(ctx, mu)
 	if err != nil {
 		return nil, err
 	}
@@ -393,8 +392,8 @@ func UpsertModule(c *dgo.Dgraph, m Module) (*api.Response, error) {
 // CountNodesWithFieldUnsafe returns the number of nodes which contain the specified field
 // this is a good indicator of the number of nodes of a certain type
 // this is unsafe, there is no input sanitation and is open to injection attacks
-func CountNodesWithFieldUnsafe(c *dgo.Dgraph, f string) (*int, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) CountNodesWithFieldUnsafe(f string) (*int, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 
 	q := fmt.Sprintf(
@@ -426,12 +425,12 @@ func CountNodesWithFieldUnsafe(c *dgo.Dgraph, f string) (*int, error) {
 }
 
 //GetOldestScrape retrieves the oldest scrape from the database
-func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) GetOldestScrape() (*Scrape, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	ctx := context.Background()
 
 	//First, check if there even is anything in the database
-	tot, totErr := CountNodesWithFieldUnsafe(c, "scrape.id")
+	tot, totErr := config.CountNodesWithFieldUnsafe("scrape.id")
 	if totErr != nil {
 		return nil, totErr
 	}
@@ -471,8 +470,8 @@ func GetOldestScrape(c *dgo.Dgraph) (*Scrape, error) {
 }
 
 //ReadOnly is a read only transaction on the database - this is assumed to be ok
-func ReadOnly(c *dgo.Dgraph, q string) ([]byte, error) {
-	txn := c.NewReadOnlyTxn()
+func (config *ConfigDB) ReadOnly(q string) ([]byte, error) {
+	txn := config.DBClient.NewReadOnlyTxn()
 	txn.BestEffort()
 	ctx := context.Background()
 

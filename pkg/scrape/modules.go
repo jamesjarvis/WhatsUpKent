@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
 
@@ -72,8 +71,8 @@ func downloadAndMarshalModules() (*[]ModuleInfo, error) {
 }
 
 //Modules scrapes the modules from kent api if they dont already exist
-func Modules(c *dgo.Dgraph) error {
-	n, countErr := db.CountNodesWithFieldUnsafe(c, "module.code")
+func (config *InitialConfig) Modules() error {
+	n, countErr := config.DBClient.CountNodesWithFieldUnsafe("module.code")
 	if countErr != nil {
 		return countErr
 	}
@@ -95,12 +94,12 @@ func Modules(c *dgo.Dgraph) error {
 				DType:   []string{"Module"},
 			}
 
-			checkExist, existErr := db.GetModuleFromSDSCode(c, m.SDSCode)
+			checkExist, existErr := config.DBClient.GetModuleFromSDSCode(m.SDSCode)
 			if existErr != nil {
 				return existErr
 			}
 			if checkExist == nil {
-				_, er1 := db.UpsertModule(c, tempMod)
+				_, er1 := config.DBClient.UpsertModule(tempMod)
 				if er1 != nil {
 					return er1
 				}

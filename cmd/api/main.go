@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/jamesjarvis/WhatsUpKent/pkg/api"
@@ -11,5 +12,9 @@ func main() {
 	if url == "" {
 		url = "localhost:9080"
 	}
-	api.Starter(url)
+
+	err := api.Starter(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
