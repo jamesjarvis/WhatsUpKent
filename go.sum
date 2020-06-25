@@ -99,6 +99,8 @@ github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/twpayne/go-geom v1.2.1 h1:GazrButEFQmIiV5SUqZdkWvMbmgVNLhZlJF3mH6Rv5w=
 github.com/twpayne/go-geom v1.2.1/go.mod h1:90yvs0wf/gyT5eQ9W4v5WOZ9w/Xnrj5RMlA9XNKqxyA=
+github.com/twpayne/go-geom v1.3.0 h1:jwhmbnQv5VTfAgohevKBuzisQSdXGjfquZ7FC8aVUzU=
+github.com/twpayne/go-geom v1.3.0/go.mod h1:90yvs0wf/gyT5eQ9W4v5WOZ9w/Xnrj5RMlA9XNKqxyA=
 github.com/twpayne/go-kml v1.5.0/go.mod h1:g/OG8Q8JUxqFw8LGXE44W7osn1uXDAYaVFr1Yld43yc=
 github.com/twpayne/go-polyline v1.0.0/go.mod h1:ICh24bcLYBX8CknfvNPKqoTbe+eg+MX1NPyJmSBo7pU=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
