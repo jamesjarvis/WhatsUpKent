@@ -3,7 +3,11 @@ services:
   #DGraph services
   zero:
     # image: dgraph/dgraph:v20.03.3
-    image: registry.gitlab.com/tiemen/dgraph-aarch64
+    #image: registry.gitlab.com/tiemen/dgraph-aarch64
+    image: jjhaslanded/dgraph-arm64
+    build:
+        context: .
+        dockerfile: Dockerfile-dgraph
     volumes:
       - type: volume
         source: dgraph
@@ -19,7 +23,11 @@ services:
       - backend
   server:
     # image: dgraph/dgraph:v20.03.3
-    image: registry.gitlab.com/tiemen/dgraph-aarch64
+    #image: registry.gitlab.com/tiemen/dgraph-aarch64
+    image: jjhaslanded/dgraph-arm64
+    build:
+        context: .
+        dockerfile: Dockerfile-dgraph
     volumes:
       - type: volume
         source: dgraph
@@ -35,24 +43,25 @@ services:
       - zero
     networks:
       - backend
-    logging: # This is only to disable logging for easier local debug
-      driver: none
-  ratel:
+    #logging: # This is only to disable logging for easier local debug
+      #driver: none
+  #ratel:
     # image: dgraph/dgraph:v20.03.3
-    image: registry.gitlab.com/tiemen/dgraph-aarch64
-    volumes:
-      - type: volume
-        source: dgraph
-        target: /dgraph
-        volume:
-          nocopy: true
-    ports:
-      - 8000:8000
-    command: dgraph-ratel
+  #  image: registry.gitlab.com/tiemen/dgraph-aarch64:ratel
+  #  volumes:
+  #    - type: volume
+  #      source: dgraph
+  #      target: /dgraph
+  #      volume:
+  #        nocopy: true
+  #  ports:
+  #    - 8000:8000
+  #  command: dgraph-ratel
 
   # WhatsUpKent services
   scraper:
     # Configuration for building the docker image for the service
+    image: jjhaslanded/whatsupkent-scraper
     build:
       context: . # Use an image built from the specified dockerfile in the current directory.
       dockerfile: Dockerfile-scraper
@@ -66,6 +75,7 @@ services:
       - backend
   api:
     # Configuration for building the docker image for the service
+    image: jjhaslanded/whatsupkent-api
     build:
       context: . # Use an image built from the specified dockerfile in the current directory.
       dockerfile: Dockerfile-api
