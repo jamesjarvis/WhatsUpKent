@@ -45,18 +45,18 @@ services:
       - backend
     #logging: # This is only to disable logging for easier local debug
       #driver: none
-  #ratel:
-    # image: dgraph/dgraph:v20.03.3
-  #  image: registry.gitlab.com/tiemen/dgraph-aarch64:ratel
-  #  volumes:
-  #    - type: volume
-  #      source: dgraph
-  #      target: /dgraph
-  #      volume:
-  #        nocopy: true
-  #  ports:
-  #    - 8000:8000
-  #  command: dgraph-ratel
+  # ratel:
+  #   image: dgraph/dgraph:v1.2.2
+  # #  image: registry.gitlab.com/tiemen/dgraph-aarch64:ratel
+  #   volumes:
+  #     - type: volume
+  #       source: dgraph
+  #       target: /dgraph
+  #       volume:
+  #         nocopy: true
+  #   ports:
+  #     - 8000:8000
+  #   command: dgraph-ratel
 
   # WhatsUpKent services
   scraper:

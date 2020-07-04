@@ -2,16 +2,14 @@ package db
 
 import (
 	"time"
-
-	"github.com/twpayne/go-geom"
 )
 
 // Golang schemas
 
-// type loc struct {
-// 	Type   string    `json:"type,omitempty"`
-// 	Coords []float64 `json:"coordinates,omitempty"`
-// }
+type Loc struct {
+	Type   string    `json:"type,omitempty"`
+	Coords []float64 `json:"coordinates,omitempty"`
+}
 
 type Module struct {
 	UID     string `json:"uid,omitempty"`
@@ -38,12 +36,12 @@ type Person struct {
 }
 
 type Location struct {
-	UID            string     `json:"uid,omitempty"`
-	ID             string     `json:"location.id,omitempty"`
-	Name           string     `json:"location.name,omitempty"`
-	Location       geom.Point `json:"location.loc,omitempty"`
-	DisabledAccess bool       `json:"location.disabled_access"`
-	DType          []string   `json:"dgraph.type,omitempty"`
+	UID            string   `json:"uid,omitempty"`
+	ID             string   `json:"location.id,omitempty"`
+	Name           string   `json:"location.name,omitempty"`
+	Location       Loc      `json:"location.loc,omitempty"`
+	DisabledAccess bool     `json:"location.disabled_access"`
+	DType          []string `json:"dgraph.type,omitempty"`
 }
 
 type Event struct {
