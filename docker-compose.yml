@@ -45,6 +45,7 @@ services:
       - backend
     #logging: # This is only to disable logging for easier local debug
       #driver: none
+  # Uncomment if running local.
   # ratel:
   #   image: dgraph/dgraph:v1.2.2
   # #  image: registry.gitlab.com/tiemen/dgraph-aarch64:ratel

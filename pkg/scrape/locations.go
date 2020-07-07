@@ -135,7 +135,7 @@ func tryAndGetTheLocationFromARoom(lo *LocationInfo) *db.Loc {
 
 	g := &db.Loc{
 		Type:   "Point",
-		Coords: []float64{lat, lon},
+		Coords: []float64{lon, lat},
 	}
 
 	// g := geom.NewPointFlat(geom.XY, []float64{lat, lon})
