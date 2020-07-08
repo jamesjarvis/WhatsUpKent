@@ -3,7 +3,7 @@ module github.com/jamesjarvis/WhatsUpKent
 go 1.12
 
 require (
-	github.com/apognu/gocal v0.7.0
+	github.com/apognu/gocal v0.8.0
 	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/dgo/v200 v200.0.0-20200502013902-3336867fe8a1
 	github.com/gorilla/handlers v1.4.2
