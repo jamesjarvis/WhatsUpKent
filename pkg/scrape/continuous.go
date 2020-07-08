@@ -27,7 +27,7 @@ func (config *InitialConfig) Continuous() error {
 				return err
 			}
 			//Remove the dead scrape
-			log.Printf("Scrape %d seems dead, removing from database...", fid.id)
+			log.Printf("Scrape %d seems dead, removing from database...", oldestScrape.ID)
 			removeScrapeErr := config.DBClient.RemoveScrape(*oldestScrape)
 			if removeScrapeErr != nil {
 				return removeScrapeErr
