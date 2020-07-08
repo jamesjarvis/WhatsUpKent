@@ -7,7 +7,7 @@ require (
 	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/dgo/v200 v200.0.0-20200502013902-3336867fe8a1
 	github.com/gorilla/handlers v1.4.2
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.7.4
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/twpayne/go-geom v1.2.1
 	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3 // indirect
