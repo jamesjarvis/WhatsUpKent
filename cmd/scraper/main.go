@@ -25,8 +25,8 @@ func main() {
 
 	config := scrape.InitialConfig{
 		Url:              url,
-		StartRange:       110000,
-		EndRange:         150000,
+		StartRange:       100000,
+		EndRange:         300000,
 		SlowInterval:     time.Second * 30,
 		MaxAge:           time.Hour * 24 * 7,
 		DownloadPool:     1,

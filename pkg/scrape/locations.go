@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
 )
@@ -78,6 +82,68 @@ func yesNoToBool(s string) bool {
 	return s == "Yes" || s == "yes"
 }
 
+// tryAndGetTheLocationFromARoom is the hackiest solution to getting the location of a room
+// Basically, it scrapes a disgusting ass webpage to get a google maps url and get the lat/long from that
+// For this, we fail silently since I'm not sure how long this website will even be up for?
+func tryAndGetTheLocationFromARoom(lo *LocationInfo) *db.Loc {
+	baseURL, err := url.Parse("https://www.kent.ac.uk/timetabling/rooms/room.html")
+	if err != nil {
+		return nil
+	}
+	// Prepare Query Parameters
+	params := url.Values{}
+	params.Add("room", lo.ID)
+
+	// Add Query Parameters to the URL
+	baseURL.RawQuery = params.Encode() // Escape Query Parameters
+
+	// Get the timetable html page
+	resp, err := http.Get(baseURL.String())
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil
+	}
+
+	// Get the google maps url from this page
+	re := regexp.MustCompile(`https:\/\/maps\.google\.co\.uk\/maps[^"]*`)
+	result := re.Find(body)
+	if result == nil {
+		return nil
+	}
+
+	// Get the query params from the google maps url, we are looking for "ll"
+	u, err := url.Parse(string(result))
+	if err != nil {
+		return nil
+	}
+
+	queries := u.Query()
+	ll := queries.Get("ll")
+	ls := strings.Split(ll, ",")
+	lat, err := strconv.ParseFloat(ls[0], 64)
+	if err != nil {
+		return nil
+	}
+	lon, err := strconv.ParseFloat(ls[1], 64)
+	if err != nil {
+		return nil
+	}
+
+	g := &db.Loc{
+		Type:   "Point",
+		Coords: []float64{lon, lat},
+	}
+
+	// g := geom.NewPointFlat(geom.XY, []float64{lat, lon})
+
+	// Finally, if nothing has failed, then return the coordinates
+	return g
+}
+
 //Locations scrapes the locations from kent api if they dont already exist
 func (config *InitialConfig) Locations() error {
 	n, countErr := config.DBClient.CountNodesWithFieldUnsafe("location.id")
@@ -96,6 +162,12 @@ func (config *InitialConfig) Locations() error {
 				Name:           loc.UFName,
 				DisabledAccess: yesNoToBool(loc.DisabledAccess),
 				DType:          []string{"Location"},
+			}
+
+			// If it can find the location, then add the damn location
+			latlon := tryAndGetTheLocationFromARoom(&loc)
+			if latlon != nil {
+				tempLoc.Location = *latlon
 			}
 
 			_, er1 := config.DBClient.UpsertLocation(tempLoc)

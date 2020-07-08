@@ -1,11 +1,11 @@
-ARG GOLANG=1.13.8-buster
+ARG GOLANG=buster
 FROM golang:${GOLANG} as builder
 # This is taken from https://gitlab.com/Tiemen/dgraph-aarch64
 # If you just want to use the provided image from there, rather than building yourself just use the image registry.gitlab.com/tiemen/dgraph-aarch64
 
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=arm64
-RUN go get -u -v google.golang.org/grpc
-RUN git clone https://www.github.com/dgraph-io/dgraph/ && \
+ENV CGO_ENABLED=0 GOOS=linux
+RUN go get -u -v google.golang.org/grpc && \
+    git clone --branch v1.2.2 https://www.github.com/dgraph-io/dgraph/ && \
     cd dgraph && \
     make install
 
