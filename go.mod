@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/twpayne/go-geom v1.2.1
+	github.com/twpayne/go-geom v1.3.2
 	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb // indirect
