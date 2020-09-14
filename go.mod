@@ -7,7 +7,7 @@ require (
 	github.com/channelmeter/iso8601duration v0.0.0-20150204201828-8da3af7a2a61 // indirect
 	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/dgo/v200 v200.0.0-20200502013902-3336867fe8a1
-	github.com/gorilla/handlers v1.4.2
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.7.4
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
