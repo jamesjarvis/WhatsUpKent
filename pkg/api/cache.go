@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	badger "github.com/dgraph-io/badger"
+	badger "github.com/dgraph-io/badger/v2"
 )
 
 //GetCache attempts to retrieve a cached version of the request
