@@ -3,16 +3,20 @@ module github.com/jamesjarvis/WhatsUpKent
 go 1.12
 
 require (
-	github.com/apognu/gocal v0.8.0
-	github.com/channelmeter/iso8601duration v0.0.0-20150204201828-8da3af7a2a61 // indirect
-	github.com/dgraph-io/badger v1.6.0
-	github.com/dgraph-io/dgo/v200 v200.0.0-20200502013902-3336867fe8a1
-	github.com/gorilla/handlers v1.4.2
-	github.com/gorilla/mux v1.7.4
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/stretchr/testify v1.5.1 // indirect
-	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3 // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/grpc v1.31.0
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	github.com/DataDog/zstd v1.4.8 // indirect
+	github.com/apognu/gocal v0.9.0
+	github.com/dgraph-io/badger/v2 v2.2007.3
+	github.com/dgraph-io/dgo/v200 v200.0.0-20210401091508-95bfd74de60e
+	github.com/dgraph-io/ristretto v0.1.0 // indirect
+	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
+	github.com/felixge/httpsnoop v1.0.2 // indirect
+	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0
+	github.com/kr/pretty v0.2.0 // indirect
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
+	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069 // indirect
+	google.golang.org/genproto v0.0.0-20210805201207-89edb61ffb67 // indirect
+	google.golang.org/grpc v1.39.1
 )

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	badger "github.com/dgraph-io/badger"
+	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jamesjarvis/WhatsUpKent/pkg/db"
