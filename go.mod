@@ -3,9 +3,8 @@ module github.com/jamesjarvis/WhatsUpKent
 go 1.12
 
 require (
-	github.com/DataDog/zstd v1.4.8 // indirect
 	github.com/apognu/gocal v0.9.0
-	github.com/dgraph-io/badger/v2 v2.2007.3
+	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/dgo/v200 v200.0.0-20210401091508-95bfd74de60e
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
